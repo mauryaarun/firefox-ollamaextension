@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <title>Local AI Workspace</title>
+  <link rel="stylesheet" href="sidebar.css">
+</head>
+<body data-theme="dark">
+
+  <header class="app-header">
+    <h1>🤖 AI Suite</h1>
+    <div class="header-controls">
+      <select id="theme-menu" title="Theme">
+        <option value="light">☀️ Light</option>
+        <option value="dark">🌙 Dark</option>
+        <option value="cyberpunk">🔮 Cyberpunk</option>
+      </select>
+      <button id="toggle-settings" title="Settings">⚙️</button>
+      <button id="clear-btn" title="Clear chat">🗑️</button>
+    </div>
+  </header>
+
+  <div id="settings-pane" class="settings-pane" style="display:none;">
+    <label>Ollama Server URL:
+      <input type="text" id="cfg-url" value="http://localhost:11434">
+    </label>
+    <label>Model:
+      <select id="cfg-model"></select>
+    </label>
+    <button id="btn-fetch-models">↻ Fetch Models</button>
+    <label>System Prompt:
+      <textarea id="cfg-system-prompt" rows="3" placeholder="Optional system instructions..."></textarea>
+    </label>
+    <label>Temperature: <input type="range" id="cfg-temp" min="0" max="2" step="0.1" value="0.7"><span id="temp-val">0.7</span></label>
+    <label>Context Length: <input type="number" id="cfg-ctx" value="4096" min="512" max="32768"></label>
+    <label><input type="checkbox" id="cfg-stream" checked> Stream responses</label>
+    <label>Current Model: <strong id="current-model-tag">none</strong></label>
+  </div>
+
+  <div class="conversation-tabs" id="conversation-tabs"></div>
+  <button id="new-conversation-btn" class="new-conv-btn">+ New Chat</button>
+
+  <div id="chat-container" class="chat-container"></div>
+
+  <div id="input-preview-zone" class="preview-zone"></div>
+
+  <div class="input-area">
+    <button id="attach-btn" title="Attach file">📎</button>
+    <input type="file" id="file-picker" multiple accept="image/*,text/*,.md,.json,.csv" hidden>
+    <textarea id="user-input" placeholder="Ask anything... (Shift+Enter for newline)"></textarea>
+    <button id="send-btn" title="Send">▶</button>
+    <button id="stop-btn" title="Stop" style="display:none;">⏹</button>
+  </div>
+
+  <div class="status-bar">
+    <span id="status-indicator" class="status-dot offline"></span>
+    <span id="status-text">Connecting...</span>
+    <span id="token-counter" class="token-counter"></span>
+  </div>
+
+  <script src="sidebar.js"></script>
+</body>
+</html>
