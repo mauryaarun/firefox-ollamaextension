@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "Local AI Multimodal Sidebar",
   "version": "2.1.0",
-  "description": "Ollama assistant supporting vision models, context collection, and custom configurations.",
+  "description": "Firefox assistant supporting vision models, context collection using local models with ollama llm provider,  it may work openai compatible custom configurations.",
   "permissions": [
     "contextMenus",
     "activeTab",
@@ -43,7 +43,11 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "ollama-multimodal-sidebar@local",
-      "strict_min_version": "109.0"
+      "strict_min_version": "109.0",
+      "data_collection_permissions": {
+        "required": ["none"],
+        "collects_data": false
+      }
     }
   }
 }
