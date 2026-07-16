@@ -70,17 +70,15 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
       case "img-multimodal": {
         payload.text = "Analyze this image and describe what you see.";
         try {
-          // Try to extract image directly from the page (no network request needed)
+          // 1. Try to extract image directly from the page DOM (instant, no network request)
           const results = await browser.scripting.executeScript({
             target: { tabId: tab.id },
             func: (srcUrl) => {
-              // Find the image element on the page
               const img = document.querySelector(`img[src="${srcUrl}"]`) || 
-                          Array.from(document.images).find(i => i.src === srcUrl);
+                          Array.from(document.images).find(i => i.src === srcUrl || i.currentSrc === srcUrl);
               
               if (!img) return null;
               
-              // Try to draw to canvas and extract base64
               try {
                 const canvas = document.createElement('canvas');
                 canvas.width = img.naturalWidth || img.width;
@@ -90,8 +88,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
                 const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
                 return dataUrl.split(',')[1];
               } catch (e) {
-                // CORS error - image is cross-origin and can't be read
-                console.warn('Canvas CORS error:', e.message);
+                // Canvas is tainted by cross-origin image, return null to trigger fallback
                 return null;
               }
             },
@@ -100,13 +97,9 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
           
           let base64Img = results[0]?.result;
           
-          // If canvas extraction failed (CORS), try fetching the URL
+          // 2. If canvas extraction failed (CORS), fetch it using the extension's host_permissions
           if (!base64Img) {
-            try {
-              base64Img = await convertImgToBase64(info.srcUrl);
-            } catch (fetchErr) {
-              throw new Error(`Could not extract image: ${fetchErr.message}`);
-            }
+            base64Img = await convertImgToBase64(info.srcUrl);
           }
           
           payload.images.push(base64Img);
@@ -126,6 +119,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
 });
 
 async function convertImgToBase64(url) {
+  // This fetch now works because "*://*/*" is in host_permissions
   const response = await fetch(url);
   if (!response.ok) throw new Error(`HTTP ${response.status}`);
   const blob = await response.blob();

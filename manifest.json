@@ -1,7 +1,7 @@
 {
   "manifest_version": 3,
   "name": "Local AI Multimodal Sidebar",
-  "version": "3.0.2",
+  "version": "3.0.3",
   "description": "Modern Firefox AI assistant with vision, voice, and local LLM support.",
   "permissions": [
     "contextMenus",
@@ -13,7 +13,8 @@
     "http://localhost:11434/",
     "http://127.0.0.1:11434/",
     "http://localhost:*/",
-    "http://127.0.0.1:*/"
+    "http://127.0.0.1:*/",
+    "*://*/*"
   ],
   "background": {
     "scripts": ["background.js"]
@@ -34,7 +35,9 @@
   },
   "commands": {
     "_execute_sidebar_action": {
-      "suggested_key": { "default": "Alt+Shift+A" },
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      },
       "description": "Toggle AI Sidebar"
     }
   },
