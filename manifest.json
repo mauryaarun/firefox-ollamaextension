@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Local AI Multimodal Sidebar",
-  "version": "2.1.0",
-  "description": "Firefox assistant supporting vision models, context collection using local models with ollama llm provider,  it may work openai compatible custom configurations.",
+  "version": "3.0.2",
+  "description": "Modern Firefox AI assistant with vision, voice, and local LLM support.",
   "permissions": [
     "contextMenus",
     "activeTab",
@@ -10,8 +10,10 @@
     "scripting"
   ],
   "host_permissions": [
-    "http://localhost:11434/*",
-    "http://127.0.0.1:11434/*"
+    "http://localhost:11434/",
+    "http://127.0.0.1:11434/",
+    "http://localhost:*/",
+    "http://127.0.0.1:*/"
   ],
   "background": {
     "scripts": ["background.js"]
@@ -25,13 +27,15 @@
     }
   },
   "sidebar_action": {
-    "default_title": "AI Suite",
+    "default_title": "🤖",
     "default_panel": "sidebar.html",
-    "default_icon": "icons/icon48.png"
+    "default_icon": "icons/icon48.png",
+    "open_at_install": false
   },
   "commands": {
     "_execute_sidebar_action": {
-      "suggested_key": { "default": "Alt+Shift+A" }
+      "suggested_key": { "default": "Alt+Shift+A" },
+      "description": "Toggle AI Sidebar"
     }
   },
   "icons": {
@@ -43,11 +47,7 @@
   "browser_specific_settings": {
     "gecko": {
       "id": "ollama-multimodal-sidebar@local",
-      "strict_min_version": "109.0",
-      "data_collection_permissions": {
-        "required": ["none"],
-        "collects_data": false
-      }
+      "strict_min_version": "109.0"
     }
   }
 }
