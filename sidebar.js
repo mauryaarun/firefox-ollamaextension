@@ -1,56 +1,76 @@
 /* ============ DOM refs ============ */
-const chatContainer     = document.getElementById("chat-container");
-const userInput         = document.getElementById("user-input");
-const sendBtn           = document.getElementById("send-btn");
-const stopBtn           = document.getElementById("stop-btn");
+const chatContainer = document.getElementById("chat-container");
+const userInput = document.getElementById("user-input");
+const sendBtn = document.getElementById("send-btn");
+const stopBtn = document.getElementById("stop-btn");
 const toggleSettingsBtn = document.getElementById("toggle-settings");
-const settingsModal     = document.getElementById("settings-modal");
-const closeSettings     = document.getElementById("close-settings");
-const btnFetchModels    = document.getElementById("btn-fetch-models");
-const cfgUrl            = document.getElementById("cfg-url");
-const cfgModel          = document.getElementById("cfg-model");
-const cfgSystemPrompt   = document.getElementById("cfg-system-prompt");
-const cfgTemp           = document.getElementById("cfg-temp");
-const cfgCtx            = document.getElementById("cfg-ctx");
-const cfgStream         = document.getElementById("cfg-stream");
-const tempVal           = document.getElementById("temp-val");
-const currentModelTag   = document.getElementById("current-model-tag");
-const filePicker        = document.getElementById("file-picker");
-const attachBtn         = document.getElementById("attach-btn");
-const previewZone       = document.getElementById("input-preview-zone");
-const clearBtn          = document.getElementById("clear-btn");
-const themeChips        = document.querySelectorAll(".theme-chip");
-const statusDot         = document.getElementById("status-indicator");
-const statusText        = document.getElementById("status-text");
-const tokenCounter      = document.getElementById("token-counter");
-const newConvBtn        = document.getElementById("new-conversation-btn");
-const exportBtn         = document.getElementById("export-btn");
-const exportMdBtn       = document.getElementById("export-md-btn");
-const importBtn         = document.getElementById("import-btn");
-const importFile        = document.getElementById("import-file");
-const cfgOpenaiMode     = document.getElementById("cfg-openai-mode");
-const cfgApiKey         = document.getElementById("cfg-api-key");
-const apiKeyGroup       = document.getElementById("api-key-group");
-const chatTitle         = document.getElementById("chat-title");
-const chatMeta          = document.getElementById("chat-meta");
-const emptyState        = document.getElementById("empty-state");
-const voiceBtn          = document.getElementById("voice-btn");
-const ttsToggleBtn      = document.getElementById("tts-toggle-btn");
-const promptTemplates   = document.getElementById("prompt-templates");
-const cfgShowThinking   = document.getElementById("cfg-show-thinking");
-const cfgAutoTts        = document.getElementById("cfg-auto-tts");
-const imageModal        = document.getElementById("image-modal");
-const modalImage        = document.getElementById("modal-image");
-const closeModal        = document.getElementById("close-modal");
-const shortcutsModal    = document.getElementById("shortcuts-modal");
-const closeShortcuts    = document.getElementById("close-shortcuts");
-const toastContainer    = document.getElementById("toast-container");
-const historyBtn        = document.getElementById("history-btn");
-const historyModal      = document.getElementById("history-modal");
-const historyList       = document.getElementById("history-list");
-const closeHistory      = document.getElementById("close-history");
-const searchInput       = document.getElementById("search-input");
-const fontSizeBtns      = document.querySelectorAll(".font-size-btn");
+const settingsModal = document.getElementById("settings-modal");
+const closeSettings = document.getElementById("close-settings");
+const btnFetchModels = document.getElementById("btn-fetch-models");
+const cfgUrl = document.getElementById("cfg-url");
+const cfgModel = document.getElementById("cfg-model");
+const cfgSystemPrompt = document.getElementById("cfg-system-prompt");
+const cfgTemp = document.getElementById("cfg-temp");
+const cfgCtx = document.getElementById("cfg-ctx");
+const cfgStream = document.getElementById("cfg-stream");
+const tempVal = document.getElementById("temp-val");
+const currentModelTag = document.getElementById("current-model-tag");
+const filePicker = document.getElementById("file-picker");
+const attachBtn = document.getElementById("attach-btn");
+const previewZone = document.getElementById("input-preview-zone");
+const clearBtn = document.getElementById("clear-btn");
+const themeChips = document.querySelectorAll(".theme-chip");
+const statusDot = document.getElementById("status-indicator");
+const statusText = document.getElementById("status-text");
+const tokenCounter = document.getElementById("token-counter");
+const exportBtn = document.getElementById("export-btn");
+const exportMdBtn = document.getElementById("export-md-btn");
+const importBtn = document.getElementById("import-btn");
+const importFile = document.getElementById("import-file");
+const cfgOpenaiMode = document.getElementById("cfg-openai-mode");
+const cfgApiKey = document.getElementById("cfg-api-key");
+const apiKeyGroup = document.getElementById("api-key-group");
+const chatTitle = document.getElementById("chat-title");
+const emptyState = document.getElementById("empty-state");
+const ttsToggleBtn = document.getElementById("tts-toggle-btn");
+const cfgShowThinking = document.getElementById("cfg-show-thinking");
+const cfgAutoTts = document.getElementById("cfg-auto-tts");
+const imageModal = document.getElementById("image-modal");
+const modalImage = document.getElementById("modal-image");
+const closeModal = document.getElementById("close-modal");
+const shortcutsModal = document.getElementById("shortcuts-modal");
+const closeShortcuts = document.getElementById("close-shortcuts");
+const toastContainer = document.getElementById("toast-container");
+const historyList = document.getElementById("history-list");
+const searchInput = document.getElementById("search-input");
+const fontSizeBtns = document.querySelectorAll(".font-size-btn");
+const historyPanel = document.getElementById("history-panel");
+const toggleHistoryBtn = document.getElementById("toggle-history");
+const newChatBtn = document.getElementById("new-chat-btn");
+const inputArea = document.getElementById("input-area");
+
+// RAG DOM refs
+const cfgRagModel = document.getElementById("cfg-rag-model");
+const cfgRagTopk = document.getElementById("cfg-rag-topk");
+const cfgRagChunkSize = document.getElementById("cfg-rag-chunk-size");
+const ragUrlInput = document.getElementById("rag-url-input");
+const ragIndexUrlBtn = document.getElementById("rag-index-url");
+const ragFileInput = document.getElementById("rag-file-input");
+const ragIndexFileBtn = document.getElementById("rag-index-file");
+const ragIndexStatus = document.getElementById("rag-index-status");
+const ragDocList = document.getElementById("rag-doc-list");
+const ragClearAllBtn = document.getElementById("rag-clear-all");
+const ragToggleBtn = document.getElementById("rag-toggle-btn");
+
+// Settings tabs
+const settingsTabs = document.querySelectorAll(".settings-tab");
+const settingsPanels = document.querySelectorAll(".settings-panel");
+const cfgPresetPrompt = document.getElementById("cfg-preset-prompt");
+const btnPullModel = document.getElementById("btn-pull-model");
+const pullModelUi = document.getElementById("pull-model-ui");
+const pullModelName = document.getElementById("pull-model-name");
+const btnConfirmPull = document.getElementById("btn-confirm-pull");
+const pullProgress = document.getElementById("pull-progress");
 
 /* ============ State ============ */
 let currentImages = [];
@@ -61,6 +81,16 @@ let currentAbortController = null;
 let isGenerating = false;
 let recognition = null;
 let isRecording = false;
+let ragEnabled = false;
+
+const predefinedPrompts = {
+  "default": "",
+  "coder": "You are an expert software engineer. Provide clean, efficient, and well-documented code. Explain your reasoning.",
+  "translator": "You are a professional translator. Translate the following text accurately, preserving the tone and context.",
+  "creative": "You are a creative writing assistant. Help brainstorm ideas, write stories, and improve prose.",
+  "summarizer": "You are a summarization expert. Provide concise, accurate summaries of the provided text.",
+  "tutor": "You are a patient and knowledgeable tutor. Explain concepts clearly with examples."
+};
 
 /* ============ Toast System ============ */
 function toast(message, type = "info", duration = 3000) {
@@ -74,12 +104,22 @@ function toast(message, type = "info", duration = 3000) {
   }, duration);
 }
 
+/* ============ Settings Tabs (FIXED) ============ */
+settingsTabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    const targetTab = tab.dataset.tab;
+    settingsTabs.forEach(t => t.classList.remove("active"));
+    settingsPanels.forEach(p => p.classList.remove("active"));
+    tab.classList.add("active");
+    document.querySelector(`.settings-panel[data-tab-content="${targetTab}"]`).classList.add("active");
+  });
+});
+
 /* ============ Init ============ */
 browser.storage.local.get([
-  "serverUrl", "selectedModel", "theme", "systemPrompt",
-  "temperature", "contextLength", "stream", "conversations",
-  "activeConvId", "openaiMode", "apiKey", "showThinking",
-  "autoTts", "fontSize"
+  "serverUrl", "selectedModel", "theme", "systemPrompt", "temperature", "contextLength",
+  "stream", "conversations", "activeConvId", "openaiMode", "apiKey", "showThinking",
+  "autoTts", "fontSize", "ragModel", "ragTopk", "ragChunkSize", "presetPrompt", "ragEnabled"
 ]).then((res) => {
   if (res.serverUrl) cfgUrl.value = res.serverUrl;
   if (res.theme) { applyTheme(res.theme); setActiveThemeChip(res.theme); }
@@ -92,37 +132,39 @@ browser.storage.local.get([
   if (res.apiKey) cfgApiKey.value = res.apiKey;
   if (res.showThinking) cfgShowThinking.checked = res.showThinking;
   if (res.autoTts) cfgAutoTts.checked = res.autoTts;
+  
+  if (res.ragTopk) cfgRagTopk.value = res.ragTopk;
+  if (res.ragChunkSize) cfgRagChunkSize.value = res.ragChunkSize;
+  if (res.ragEnabled) { ragEnabled = res.ragEnabled; updateRagToggleUI(); }
+  if (res.presetPrompt) cfgPresetPrompt.value = res.presetPrompt;
+  
   if (res.fontSize) {
     document.body.classList.add(`font-${res.fontSize}`);
     fontSizeBtns.forEach(b => b.classList.toggle("active", b.dataset.size === res.fontSize));
-  } else {
-    fontSizeBtns.forEach(b => b.classList.toggle("active", b.dataset.size === "14"));
   }
 
   conversations = res.conversations || {};
   activeConvId = res.activeConvId || null;
-  if (res.selectedModel) {
-    currentModelTag.innerText = res.selectedModel;
-    const opt = document.createElement("option");
-    opt.value = res.selectedModel; opt.textContent = res.selectedModel;
-    cfgModel.appendChild(opt); cfgModel.value = res.selectedModel;
-  }
+  
   if (!activeConvId || !conversations[activeConvId]) {
     createConversation(true);
   } else {
     renderHistoryList();
     renderMessages();
   }
+  
   fetchOllamaModels();
   checkServerStatus();
   setInterval(checkServerStatus, 30000);
+  
   browser.storage.local.get("pendingPrompt").then(r => {
     if (r.pendingPrompt) {
       handleIncomingPrompt(r.pendingPrompt);
       browser.storage.local.remove("pendingPrompt");
     }
   });
-  initVoiceRecognition();
+  
+  loadRagDocuments();
 });
 
 /* ============ Theme Management ============ */
@@ -149,6 +191,18 @@ themeChips.forEach(chip => {
     browser.storage.local.set({ theme: t });
   });
 });
+
+/* ============ RAG Toggle ============ */
+ragToggleBtn.addEventListener("click", () => {
+  ragEnabled = !ragEnabled;
+  browser.storage.local.set({ ragEnabled });
+  updateRagToggleUI();
+  toast(ragEnabled ? "RAG enabled" : "RAG disabled", "info", 1500);
+});
+function updateRagToggleUI() {
+  ragToggleBtn.classList.toggle("active", ragEnabled);
+  ragToggleBtn.title = ragEnabled ? "RAG Enabled (click to disable)" : "RAG Disabled (click to enable)";
+}
 
 /* ============ Markdown Parser ============ */
 function parseMarkdownToHtml(md) {
@@ -222,14 +276,6 @@ function renameConversation(id, e) {
     toast("Conversation renamed", "success");
   }
 }
-function pinConversation(id, e) {
-  e.stopPropagation();
-  const conv = conversations[id];
-  conv.pinned = !conv.pinned;
-  saveConversations();
-  renderHistoryList();
-  toast(conv.pinned ? "Conversation pinned 📌" : "Unpinned");
-}
 function deleteConversation(id, e) {
   e.stopPropagation();
   if (!confirm("Delete this conversation?")) return;
@@ -249,43 +295,40 @@ function saveConversations() { browser.storage.local.set({ conversations, active
 
 function renderHistoryList() {
   historyList.innerHTML = "";
-  const allConvs = Object.values(conversations)
-    .sort((a, b) => (b.pinned === a.pinned ? b.createdAt - a.createdAt : b.pinned ? 1 : -1));
+  const allConvs = Object.values(conversations).sort((a, b) => b.createdAt - a.createdAt);
   const searchTerm = searchInput.value.toLowerCase();
   const filtered = allConvs.filter(c => {
     if (!searchTerm) return true;
     if (c.title.toLowerCase().includes(searchTerm)) return true;
     return c.messages.some(m => m.text.toLowerCase().includes(searchTerm));
   });
+  
   if (filtered.length === 0) {
-    historyList.innerHTML = `<div style="text-align:center; padding:30px 20px; color:var(--fg-muted); font-size: 13px;">No conversations found.</div>`;
+    historyList.innerHTML = `<div style="text-align:center; padding:30px 20px; color:var(--text-secondary); font-size: 13px;">No conversations found.</div>`;
     return;
   }
+  
   filtered.forEach(c => {
     const item = document.createElement("div");
     item.className = "history-item" + (c.id === activeConvId ? " active" : "");
     item.innerHTML = `
-      <div class="history-item-title">${c.pinned ? '📌 ' : ''}${escapeHtml(c.title)}</div>
+      <div class="history-item-title">${escapeHtml(c.title)}</div>
       <div class="history-item-actions">
-        <button data-action="pin" title="${c.pinned ? 'Unpin' : 'Pin'}">${c.pinned ? '📌' : '📍'}</button>
         <button data-action="rename" title="Rename">✏️</button>
         <button data-action="delete" title="Delete">🗑️</button>
       </div>`;
-    item.onclick = (e) => {
-      if (e.target.closest('.history-item-actions')) return;
+    item.onclick = () => {
       switchConversation(c.id);
-      historyModal.classList.remove('active');
+      if (window.innerWidth < 600) historyPanel.classList.add("collapsed");
     };
-    item.querySelector('[data-action="pin"]').onclick = (e) => { e.stopPropagation(); pinConversation(c.id, e); };
     item.querySelector('[data-action="rename"]').onclick = (e) => { e.stopPropagation(); renameConversation(c.id, e); };
     item.querySelector('[data-action="delete"]').onclick = (e) => { e.stopPropagation(); deleteConversation(c.id, e); };
     historyList.appendChild(item);
   });
 }
 
-newConvBtn.onclick = () => { createConversation(true); historyModal.classList.remove('active'); };
-historyBtn.onclick = () => { renderHistoryList(); historyModal.classList.add('active'); };
-closeHistory.onclick = () => historyModal.classList.remove('active');
+newChatBtn.onclick = () => createConversation(true);
+toggleHistoryBtn.onclick = () => historyPanel.classList.toggle("collapsed");
 searchInput.addEventListener("input", renderHistoryList);
 
 /* ============ Rendering ============ */
@@ -294,7 +337,7 @@ function renderMessages() {
   const conv = conversations[activeConvId];
   if (!conv) return;
   chatTitle.textContent = conv.title;
-  chatMeta.innerHTML = `${conv.messages.length} messages · <span>${tokenCounter.textContent || '~0 tokens'}</span>`;
+  
   if (conv.messages.length === 0) {
     const empty = emptyState.cloneNode(true);
     empty.style.display = "flex";
@@ -304,6 +347,7 @@ function renderMessages() {
     });
     return;
   }
+  
   conv.messages.forEach(m => appendMessage(m.text, m.sender, m.images, false, m.id, m.ts, m.thinking));
   updateTokenCounter();
   setTimeout(autoScrollChat, 50);
@@ -314,23 +358,23 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
   wrapper.classList.add("message-wrapper", sender);
   const msgId = existingId || "msg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
   wrapper.dataset.msgId = msgId;
-
+  
   const msg = document.createElement("div");
   msg.classList.add("message");
-
+  
   if (thinking && cfgShowThinking.checked) {
     const thinkBlock = document.createElement("details");
     thinkBlock.className = "thinking-block";
     thinkBlock.innerHTML = `<summary>💭 Thinking process</summary><div>${parseMarkdownToHtml(thinking)}</div>`;
     msg.appendChild(thinkBlock);
   }
-
+  
   const contentDiv = document.createElement("div");
   contentDiv.className = "message-content";
   contentDiv.innerHTML = sender === "user" ? escapeHtml(text).replace(/\n/g, "<br>") : parseMarkdownToHtml(text);
   msg.appendChild(contentDiv);
   wrapper.appendChild(msg);
-
+  
   if (images && images.length > 0) {
     images.forEach(imgBase64 => {
       const imgEl = document.createElement("img");
@@ -342,18 +386,19 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
       msg.appendChild(imgEl);
     });
   }
-
+  
   const time = document.createElement("div");
   time.className = "message-time";
   time.textContent = new Date(timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   wrapper.appendChild(time);
-
+  
   const actions = document.createElement("div");
   actions.className = "bubble-actions";
   const copyBtn = mkBtn("📋 Copy", () => {
     navigator.clipboard.writeText(msg.innerText).then(() => toast("Copied!", "success", 1200));
   });
   actions.appendChild(copyBtn);
+  
   if (sender === "user") {
     actions.appendChild(mkBtn("✏️ Edit", () => editAndResend(msgId)));
   } else {
@@ -361,10 +406,10 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
     actions.appendChild(mkBtn("🔊 Read", () => speakText(text)));
   }
   wrapper.appendChild(actions);
-
+  
   chatContainer.appendChild(wrapper);
   autoScrollChat();
-
+  
   if (save) {
     const conv = conversations[activeConvId];
     conv.messages.push({ id: msgId, text, sender, images: images || [], ts: timestamp || Date.now(), thinking: thinking || null });
@@ -384,6 +429,7 @@ function mkBtn(label, handler) {
   b.className = "action-link"; b.textContent = label; b.onclick = handler;
   return b;
 }
+
 function editAndResend(msgId) {
   const conv = conversations[activeConvId];
   const idx = conv.messages.findIndex(m => m.id === msgId);
@@ -395,6 +441,7 @@ function editAndResend(msgId) {
   saveConversations(); renderMessages();
   userInput.value = newText; sendBtn.click();
 }
+
 function regenerate(msgId) {
   const conv = conversations[activeConvId];
   const idx = conv.messages.findIndex(m => m.id === msgId);
@@ -414,6 +461,7 @@ exportBtn.addEventListener("click", () => {
   downloadBlob(blob, `${sanitizeFilename(conv.title)}_backup.json`);
   toast("Exported as JSON", "success");
 });
+
 exportMdBtn.addEventListener("click", () => {
   const conv = conversations[activeConvId];
   if (!conv || conv.messages.length === 0) return toast("No messages to export", "warning");
@@ -427,11 +475,13 @@ exportMdBtn.addEventListener("click", () => {
   downloadBlob(blob, `${sanitizeFilename(conv.title)}.md`);
   toast("Exported as Markdown", "success");
 });
+
 function downloadBlob(blob, filename) {
   const a = document.createElement("a");
   a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
 }
 function sanitizeFilename(name) { return name.replace(/[^a-z0-9]/gi, '_').substring(0, 50); }
+
 importBtn.addEventListener("click", () => importFile.click());
 importFile.addEventListener("change", async (e) => {
   const file = e.target.files[0];
@@ -440,12 +490,12 @@ importFile.addEventListener("change", async (e) => {
   try {
     let importedData;
     if (file.name.endsWith(".md")) {
-      importedData = { id: "conv_" + Date.now(), title: file.name.replace(".md", ""), messages: [{ id: "msg_1", text, sender: "assistant", images: [], ts: Date.now() }], createdAt: Date.now() };
+      importedData = { id: "conv" + Date.now(), title: file.name.replace(".md", ""), messages: [{ id: "msg_1", text, sender: "assistant", images: [], ts: Date.now() }], createdAt: Date.now() };
     } else {
       importedData = JSON.parse(text);
       if (!importedData.messages) throw new Error("Invalid");
     }
-    importedData.id = "conv_" + Date.now();
+    importedData.id = "conv" + Date.now();
     conversations[importedData.id] = importedData;
     saveConversations(); switchConversation(importedData.id);
     toast("Chat imported successfully!", "success");
@@ -460,10 +510,8 @@ clearBtn.addEventListener("click", () => {
   conversations[activeConvId].title = "New Chat";
   saveConversations(); renderMessages(); renderHistoryList();
   toast("Chat cleared");
-  settingsModal.classList.remove('active');
 });
 
-// Settings modal open/close
 toggleSettingsBtn.addEventListener("click", () => settingsModal.classList.add('active'));
 closeSettings.addEventListener("click", () => settingsModal.classList.remove('active'));
 settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) settingsModal.classList.remove('active'); });
@@ -475,6 +523,7 @@ cfgOpenaiMode.addEventListener("change", () => {
 cfgApiKey.addEventListener("change", () => browser.storage.local.set({ apiKey: cfgApiKey.value }));
 cfgShowThinking.addEventListener("change", () => browser.storage.local.set({ showThinking: cfgShowThinking.checked }));
 cfgAutoTts.addEventListener("change", () => browser.storage.local.set({ autoTts: cfgAutoTts.checked }));
+
 btnFetchModels.addEventListener("click", fetchOllamaModels);
 cfgModel.addEventListener("change", () => {
   browser.storage.local.set({ selectedModel: cfgModel.value });
@@ -488,6 +537,117 @@ cfgTemp.addEventListener("input", () => {
 });
 cfgCtx.addEventListener("change", () => browser.storage.local.set({ contextLength: parseInt(cfgCtx.value) }));
 cfgStream.addEventListener("change", () => browser.storage.local.set({ stream: cfgStream.checked }));
+
+// RAG Settings Listeners
+cfgRagTopk.addEventListener("change", () => browser.storage.local.set({ ragTopk: parseInt(cfgRagTopk.value) }));
+cfgRagChunkSize.addEventListener("change", () => browser.storage.local.set({ ragChunkSize: parseInt(cfgRagChunkSize.value) }));
+cfgRagModel.addEventListener("change", () => browser.storage.local.set({ ragModel: cfgRagModel.value }));
+
+cfgPresetPrompt.addEventListener("change", () => {
+  const val = cfgPresetPrompt.value;
+  browser.storage.local.set({ presetPrompt: val });
+  if (predefinedPrompts[val] !== undefined) {
+    cfgSystemPrompt.value = predefinedPrompts[val];
+    browser.storage.local.set({ systemPrompt: cfgSystemPrompt.value });
+  }
+});
+
+// Pull Model UI
+btnPullModel.addEventListener("click", () => {
+  pullModelUi.style.display = pullModelUi.style.display === "none" ? "block" : "none";
+});
+btnConfirmPull.addEventListener("click", async () => {
+  const modelName = pullModelName.value.trim();
+  if (!modelName) return toast("Enter a model name", "warning");
+  btnConfirmPull.disabled = true;
+  pullProgress.textContent = "Starting pull...";
+  browser.runtime.sendMessage({
+    action: "pull-model",
+    baseUrl: cfgUrl.value.trim().replace(/\/$/, ""),
+    modelName: modelName
+  });
+});
+
+browser.runtime.onMessage.addListener((msg) => {
+  if (msg.action === "pull-progress") {
+    if (msg.data.status) pullProgress.textContent = msg.data.status;
+    if (msg.data.total && msg.data.completed) {
+      const pct = ((msg.data.completed / msg.data.total) * 100).toFixed(1);
+      pullProgress.textContent += ` (${pct}%)`;
+    }
+  } else if (msg.action === "pull-complete") {
+    pullProgress.textContent = "✅ Pull complete! Fetching models...";
+    btnConfirmPull.disabled = false;
+    fetchOllamaModels();
+    setTimeout(() => { pullModelUi.style.display = "none"; }, 2000);
+  } else if (msg.action === "pull-error") {
+    pullProgress.textContent = `❌ Error: ${msg.error}`;
+    btnConfirmPull.disabled = false;
+  }
+});
+
+// RAG Indexing
+ragIndexUrlBtn.addEventListener("click", async () => {
+  const url = ragUrlInput.value.trim();
+  if (!url) return toast("Enter a URL", "warning");
+  ragIndexStatus.textContent = "Fetching URL...";
+  try {
+    const res = await browser.runtime.sendMessage({ action: "fetch-url-text", url });
+    if (res.error) throw new Error(res.error);
+    if (!res.text || res.text.length < 50) throw new Error("No text content found");
+    ragIndexStatus.textContent = "Indexing content...";
+    await indexContent(url, res.text);
+    ragIndexStatus.textContent = `✅ Indexed ${url}`;
+    ragUrlInput.value = "";
+    toast("URL indexed successfully!", "success");
+    loadRagDocuments();
+  } catch (e) {
+    ragIndexStatus.textContent = `❌ ${e.message}`;
+    toast("Indexing failed: " + e.message, "error");
+  }
+});
+
+ragIndexFileBtn.addEventListener("click", async () => {
+  const files = Array.from(ragFileInput.files);
+  if (files.length === 0) return toast("Select files", "warning");
+  ragIndexStatus.textContent = "Processing files...";
+  try {
+    for (const file of files) {
+      ragIndexStatus.textContent = `Processing ${file.name}...`;
+      let text = "";
+      if (file.type === "application/pdf") {
+        text = await extractTextFromPDF(file);
+      } else {
+        text = await file.text();
+      }
+      if (!text || text.length < 50) throw new Error(`No extractable text from ${file.name}`);
+      await indexContent(file.name, text);
+    }
+    ragIndexStatus.textContent = `✅ Indexed ${files.length} file(s)`;
+    ragFileInput.value = "";
+    toast("Files indexed successfully!", "success");
+    loadRagDocuments();
+  } catch (e) {
+    ragIndexStatus.textContent = `❌ ${e.message}`;
+    toast("Indexing failed: " + e.message, "error");
+  }
+});
+
+// FIXED PDF Extraction with graceful fallback
+async function extractTextFromPDF(file) {
+  if (typeof pdfjsLib === 'undefined') {
+    throw new Error("PDF.js library is missing. Ensure 'lib/pdfjs/pdf.min.js' is in your extension folder.");
+  }
+  const arrayBuffer = await file.arrayBuffer();
+  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+  let text = "";
+  for (let i = 1; i <= pdf.numPages; i++) {
+    const page = await pdf.getPage(i);
+    const content = await page.getTextContent();
+    text += content.items.map(item => item.str).join(" ") + "\n";
+  }
+  return text;
+}
 
 chatTitle.addEventListener("blur", () => {
   const conv = conversations[activeConvId];
@@ -516,6 +676,23 @@ filePicker.addEventListener("change", async e => {
   await handleFiles(Array.from(e.target.files));
   filePicker.value = "";
 });
+
+// Drag & Drop Support
+inputArea.addEventListener("dragover", (e) => {
+  e.preventDefault();
+  inputArea.classList.add("drag-over");
+});
+inputArea.addEventListener("dragleave", () => {
+  inputArea.classList.remove("drag-over");
+});
+inputArea.addEventListener("drop", async (e) => {
+  e.preventDefault();
+  inputArea.classList.remove("drag-over");
+  if (e.dataTransfer.files.length > 0) {
+    await handleFiles(Array.from(e.dataTransfer.files));
+  }
+});
+
 async function handleFiles(files) {
   for (const file of files) {
     if (file.type.startsWith("image/")) {
@@ -535,6 +712,7 @@ async function handleFiles(files) {
     }
   }
 }
+
 function fileToBase64(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
@@ -548,35 +726,11 @@ function openImageModal(src) { modalImage.src = src; imageModal.classList.add("a
 closeModal.onclick = () => imageModal.classList.remove("active");
 imageModal.onclick = (e) => { if (e.target === imageModal) imageModal.classList.remove("active"); };
 
-/* ============ Voice Input ============ */
-function initVoiceRecognition() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) { voiceBtn.style.display = "none"; return; }
-  recognition = new SpeechRecognition();
-  recognition.continuous = false; recognition.interimResults = true; recognition.lang = "en-US";
-  recognition.onresult = (event) => {
-    const transcript = Array.from(event.results).map(r => r[0].transcript).join(" ");
-    userInput.value = transcript; autoResizeTextarea();
-  };
-  recognition.onend = () => {
-    isRecording = false; voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤";
-  };
-  recognition.onerror = (e) => {
-    toast("Voice error: " + e.error, "error");
-    isRecording = false; voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤";
-  };
-}
-voiceBtn.onclick = () => {
-  if (!recognition) return toast("Voice not supported", "error");
-  if (isRecording) { recognition.stop(); }
-  else { recognition.start(); isRecording = true; voiceBtn.classList.add("recording"); voiceBtn.textContent = "⏹"; toast("Listening...", "info", 1500); }
-};
-
 /* ============ Text-to-Speech ============ */
 function speakText(text) {
   if (!window.speechSynthesis) return toast("TTS not supported", "error");
   if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
-  const clean = text.replace(/```[\s\S]*?```/g, "  ").replace(/[#*`]/g, " ");
+  const clean = text.replace(/```[\s\S]*?```/g, "").replace(/[#*`]/g, "");
   const utter = new SpeechSynthesisUtterance(clean);
   utter.rate = 1; utter.pitch = 1;
   speechSynthesis.speak(utter);
@@ -588,21 +742,6 @@ ttsToggleBtn.onclick = () => {
   if (lastAssistant) speakText(lastAssistant.text);
   else toast("No assistant message to read", "warning");
 };
-
-/* ============ Prompt Templates ============ */
-promptTemplates.addEventListener("change", (e) => {
-  const templates = {
-    summarize: "Please summarize the following content concisely:\n\n",
-    explain: "Explain the following concept in simple terms:\n\n",
-    translate: "Translate the following text to English:\n\n",
-    "code-review": "Review this code for bugs, improvements, and best practices:\n\n```\n\n```\n",
-    brainstorm: "Help me brainstorm ideas for: ",
-    refactor: "Refactor this code to improve readability and performance:\n\n```\n\n```\n"
-  };
-  const val = e.target.value;
-  if (templates[val]) { userInput.value = templates[val]; userInput.focus(); autoResizeTextarea(); }
-  e.target.value = "";
-});
 
 /* ============ Incoming prompts ============ */
 browser.runtime.onMessage.addListener(handleIncomingPrompt);
@@ -622,10 +761,12 @@ sendBtn.addEventListener("click", () => {
   const imgs = [...currentImages]; currentImages = []; contextFileText = "";
   autoResizeTextarea(); askOllama(text, imgs);
 });
+
 userInput.addEventListener("keydown", e => {
   if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
 });
 userInput.addEventListener("input", autoResizeTextarea);
+
 function autoResizeTextarea() {
   userInput.style.height = "auto";
   userInput.style.height = Math.min(userInput.scrollHeight, 160) + "px";
@@ -637,29 +778,223 @@ stopBtn.addEventListener("click", () => {
   if (speechSynthesis.speaking) speechSynthesis.cancel();
 });
 
+/* ============ RAG Engine ============ */
+const DB_NAME = 'LocalAIRAG';
+const DB_VERSION = 2;
+const STORE_NAME = 'chunks';
+const DOCS_STORE = 'documents';
+
+function openDB() {
+  return new Promise((resolve, reject) => {
+    const request = indexedDB.open(DB_NAME, DB_VERSION);
+    request.onupgradeneeded = (event) => {
+      const db = event.target.result;
+      if (!db.objectStoreNames.contains(STORE_NAME)) {
+        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+        store.createIndex('source', 'source', { unique: false });
+      }
+      if (!db.objectStoreNames.contains(DOCS_STORE)) {
+        db.createObjectStore(DOCS_STORE, { keyPath: 'name' });
+      }
+    };
+    request.onsuccess = (event) => resolve(event.target.result);
+    request.onerror = (event) => reject(event.target.error);
+  });
+}
+
+async function getEmbedding(text, model) {
+  const baseUrl = cfgUrl.value.trim().replace(/\/$/, "");
+  const res = await fetch(`${baseUrl}/api/embeddings`, {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json' },
+    body: JSON.stringify({ model: model, prompt: text })
+  });
+  if (!res.ok) throw new Error('Embedding API failed. Ensure the model is pulled.');
+  const data = await res.json();
+  return data.embedding;
+}
+
+function cosineSimilarity(vecA, vecB) {
+  let dotProduct = 0, normA = 0, normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dotProduct += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
+}
+
+async function chunkText(text, chunkSize = 1000, overlap = 200) {
+  const chunks = [];
+  for (let i = 0; i < text.length; i += chunkSize - overlap) {
+    chunks.push(text.slice(i, i + chunkSize));
+  }
+  return chunks;
+}
+
+async function indexContent(source, text) {
+  const db = await openDB();
+  const embeddingModel = cfgRagModel.value || "nomic-embed-text";
+  const chunkSize = parseInt(cfgRagChunkSize.value) || 1000;
+  const chunks = await chunkText(text, chunkSize, 200);
+  
+  const embeddings = [];
+  for (const chunk of chunks) {
+    const embedding = await getEmbedding(chunk, embeddingModel);
+    embeddings.push({ source, text: chunk, embedding, timestamp: Date.now() });
+  }
+  
+  const tx = db.transaction(STORE_NAME, 'readwrite');
+  const store = tx.objectStore(STORE_NAME);
+  for (const item of embeddings) { store.add(item); }
+  
+  const docsTx = db.transaction(DOCS_STORE, 'readwrite');
+  const docsStore = docsTx.objectStore(DOCS_STORE);
+  docsStore.put({ name: source, chunks: chunks.length, timestamp: Date.now() });
+  
+  return new Promise((resolve, reject) => {
+    tx.oncomplete = () => resolve();
+    tx.onerror = (e) => reject(e.target.error);
+  });
+}
+
+async function queryRAG(prompt) {
+  const db = await openDB();
+  const embeddingModel = cfgRagModel.value || "nomic-embed-text";
+  const topK = parseInt(cfgRagTopk.value) || 3;
+  const queryEmbedding = await getEmbedding(prompt, embeddingModel);
+  
+  const tx = db.transaction(STORE_NAME, 'readonly');
+  const store = tx.objectStore(STORE_NAME);
+  const request = store.getAll();
+  
+  return new Promise((resolve) => {
+    request.onsuccess = () => {
+      const allChunks = request.result;
+      if (allChunks.length === 0) { resolve(""); return; }
+      const scored = allChunks.map(chunk => ({
+        ...chunk,
+        score: cosineSimilarity(queryEmbedding, chunk.embedding)
+      }));
+      scored.sort((a, b) => b.score - a.score);
+      const topChunks = scored.slice(0, topK);
+      const context = topChunks.map(c => `[Source: ${c.source}]\n${c.text}`).join('\n\n---\n\n');
+      resolve(context);
+    };
+  });
+}
+
+async function loadRagDocuments() {
+  const db = await openDB();
+  const tx = db.transaction(DOCS_STORE, 'readonly');
+  const store = tx.objectStore(DOCS_STORE);
+  const request = store.getAll();
+  
+  request.onsuccess = () => {
+    const docs = request.result;
+    if (docs.length === 0) {
+      ragDocList.innerHTML = `<div class="empty-docs">No documents indexed yet</div>`;
+      return;
+    }
+    ragDocList.innerHTML = "";
+    docs.forEach(doc => {
+      const item = document.createElement("div");
+      item.className = "rag-doc-item";
+      item.innerHTML = `
+        <div>
+          <div class="rag-doc-name">${escapeHtml(doc.name)}</div>
+          <div class="rag-doc-meta">${doc.chunks} chunks · ${new Date(doc.timestamp).toLocaleDateString()}</div>
+        </div>
+        <button class="icon-btn rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">🗑️</button>
+      `;
+      ragDocList.appendChild(item);
+    });
+    
+    ragDocList.querySelectorAll('.rag-doc-delete').forEach(btn => {
+      btn.onclick = async () => {
+        const name = btn.dataset.name;
+        if (confirm(`Delete "${name}" from knowledge base?`)) {
+          await deleteRagDocument(name);
+          loadRagDocuments();
+          toast("Document deleted", "success");
+        }
+      };
+    });
+  };
+}
+
+async function deleteRagDocument(name) {
+  const db = await openDB();
+  const chunksTx = db.transaction(STORE_NAME, 'readwrite');
+  const chunksStore = chunksTx.objectStore(STORE_NAME);
+  const index = chunksStore.index('source');
+  const request = index.openCursor(IDBKeyRange.only(name));
+  
+  request.onsuccess = (event) => {
+    const cursor = event.target.result;
+    if (cursor) { cursor.delete(); cursor.continue(); }
+  };
+  
+  const docsTx = db.transaction(DOCS_STORE, 'readwrite');
+  docsTx.objectStore(DOCS_STORE).delete(name);
+  
+  return new Promise((resolve) => { chunksTx.oncomplete = () => resolve(); });
+}
+
+ragClearAllBtn.addEventListener("click", async () => {
+  if (!confirm("Delete ALL documents from knowledge base?")) return;
+  const db = await openDB();
+  const chunksTx = db.transaction(STORE_NAME, 'readwrite');
+  chunksTx.objectStore(STORE_NAME).clear();
+  const docsTx = db.transaction(DOCS_STORE, 'readwrite');
+  docsTx.objectStore(DOCS_STORE).clear();
+  chunksTx.oncomplete = () => {
+    loadRagDocuments();
+    toast("All documents cleared", "success");
+  };
+});
+
 /* ============ API Call ============ */
 async function askOllama(promptText, images = []) {
   appendMessage(promptText, "user", images);
   const wrapper = appendMessage("", "assistant");
   const msgDiv = wrapper.querySelector(".message");
   msgDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+  
   sendBtn.style.display = "none"; stopBtn.style.display = "inline-flex";
   isGenerating = true; currentAbortController = new AbortController();
+  
   let accumulated = ""; let thinkingContent = "";
-
+  let finalPrompt = promptText;
+  
+  if (ragEnabled) {
+    try {
+      toast("Searching knowledge base...", "info", 1500);
+      const ragContext = await queryRAG(promptText);
+      if (ragContext) {
+        finalPrompt = `Use the following context to answer the question. If the answer is not in the context, say you don't know.\n\nContext:\n${ragContext}\n\nQuestion: ${promptText}`;
+      }
+    } catch (e) {
+      console.error("RAG error", e);
+      toast("RAG search failed: " + e.message, "error");
+    }
+  }
+  
   const baseUrl = cfgUrl.value.trim().replace(/\/$/, "");
   const isOpenAIMode = cfgOpenaiMode.checked;
   const apiKey = cfgApiKey.value;
   const conv = conversations[activeConvId];
   const messages = [];
+  
   if (cfgSystemPrompt.value.trim()) messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
   const history = conv.messages.slice(0, -1).slice(-10);
   history.forEach(m => {
     if (m.sender === "user" || m.sender === "assistant") messages.push({ role: m.sender, content: m.text });
   });
-  messages.push({ role: "user", content: promptText, images: images.length ? images : undefined });
-
+  messages.push({ role: "user", content: finalPrompt, images: images.length ? images : undefined });
+  
   let fetchUrl, fetchBody, fetchHeaders = { "Content-Type": "application/json" };
+  
   if (isOpenAIMode) {
     fetchUrl = `${baseUrl}/v1/chat/completions`;
     if (apiKey) fetchHeaders["Authorization"] = `Bearer ${apiKey}`;
@@ -668,19 +1003,22 @@ async function askOllama(promptText, images = []) {
     fetchUrl = `${baseUrl}/api/chat`;
     fetchBody = { model: cfgModel.value || "gemma3", messages: messages, stream: cfgStream.checked, options: { temperature: parseFloat(cfgTemp.value), num_ctx: parseInt(cfgCtx.value) } };
   }
-
+  
   try {
     const res = await fetch(fetchUrl, { method: "POST", headers: fetchHeaders, signal: currentAbortController.signal, body: JSON.stringify(fetchBody) });
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
+    
     if (cfgStream.checked) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
+      
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n"); buffer = lines.pop();
+        
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
@@ -708,9 +1046,11 @@ async function askOllama(promptText, images = []) {
       else { accumulated = data.message?.content || ""; thinkingContent = data.message?.thinking || ""; }
       updateStreamingMessage(msgDiv, accumulated, thinkingContent, true);
     }
+    
     conv.messages[conv.messages.length - 1] = { id: wrapper.dataset.msgId, text: accumulated, sender: "assistant", images: [], ts: Date.now(), thinking: thinkingContent || null };
     saveConversations(); updateTokenCounter();
     if (cfgAutoTts.checked && accumulated) speakText(accumulated);
+    
   } catch (err) {
     if (err.name === "AbortError") {
       msgDiv.innerHTML = parseMarkdownToHtml(accumulated + "\n\n*[stopped]*");
@@ -736,32 +1076,64 @@ function updateStreamingMessage(msgDiv, content, thinking, final = false) {
   autoScrollChat();
 }
 
-/* ============ Model fetching ============ */
+/* ============ Model fetching (Enhanced for RAG) ============ */
 async function fetchOllamaModels() {
   try {
     const baseUrl = cfgUrl.value.trim().replace(/\/$/, "");
     if (!baseUrl) { toast("Please enter a valid Server URL first.", "warning"); return; }
+    
     const url = `${baseUrl}/api/tags`;
     const res = await fetch(url);
     if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
     const data = await res.json();
+    
     cfgModel.innerHTML = "";
+    cfgRagModel.innerHTML = "";
+    
+    const defaultEmbed = "nomic-embed-text";
+    let hasDefaultEmbed = false;
+    
     if (data.models && data.models.length > 0) {
       data.models.forEach(m => {
+        // Main model dropdown
         const o = document.createElement("option");
-        o.value = m.name; o.textContent = m.name; cfgModel.appendChild(o);
+        o.value = m.name; o.textContent = m.name;
+        cfgModel.appendChild(o);
+        
+        // RAG embedding dropdown
+        const ragOpt = document.createElement("option");
+        ragOpt.value = m.name; ragOpt.textContent = m.name;
+        cfgRagModel.appendChild(ragOpt);
+        
+        if (m.name === defaultEmbed) hasDefaultEmbed = true;
       });
-      if (!cfgModel.value) {
-        cfgModel.selectedIndex = 0;
-        browser.storage.local.set({ selectedModel: cfgModel.value });
-        currentModelTag.innerText = cfgModel.value;
+      
+      // Ensure default embedding model is in the list even if not pulled
+      if (!hasDefaultEmbed) {
+        const ragOpt = document.createElement("option");
+        ragOpt.value = defaultEmbed;
+        ragOpt.textContent = `${defaultEmbed} (not installed)`;
+        cfgRagModel.prepend(ragOpt);
       }
+      
+      // Restore saved selections
+      browser.storage.local.get(["selectedModel", "ragModel"]).then(res => {
+        if (res.selectedModel) cfgModel.value = res.selectedModel;
+        if (res.ragModel) cfgRagModel.value = res.ragModel;
+        else cfgRagModel.value = defaultEmbed;
+        
+        currentModelTag.innerText = cfgModel.value;
+      });
+      
       toast(`Loaded ${data.models.length} models`, "success");
+      pullModelUi.style.display = "none";
     } else {
-      toast("No models found. Run 'ollama pull gemma3' in terminal.", "warning");
+      toast("No models found. Click 'Pull' to download one.", "warning");
+      pullModelUi.style.display = "block";
     }
   } catch (e) {
     toast(`Could not fetch models: ${e.message}`, "error");
+    pullModelUi.style.display = "block";
   }
 }
 
@@ -785,26 +1157,25 @@ function updateTokenCounter() {
   conv.messages.forEach(m => { if (m.text) totalChars += m.text.length; });
   const estimatedTokens = Math.round(totalChars / 4);
   tokenCounter.textContent = `~${estimatedTokens} tokens`;
-  chatMeta.innerHTML = `${conv.messages.length} messages · <span>${tokenCounter.textContent}</span>`;
 }
 
 /* ============ Keyboard Shortcuts ============ */
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey || e.metaKey) {
     if (e.key === "n" || e.key === "N") { e.preventDefault(); createConversation(true); }
-    else if (e.key === "k" || e.key === "K") { e.preventDefault(); historyBtn.click(); }
+    else if (e.key === "k" || e.key === "K") { e.preventDefault(); searchInput.focus(); historyPanel.classList.remove("collapsed"); }
     else if (e.key === "e" || e.key === "E") { e.preventDefault(); exportBtn.click(); }
     else if (e.key === ",") { e.preventDefault(); toggleSettingsBtn.click(); }
     else if (e.key === "/" || e.key === "?") { e.preventDefault(); shortcutsModal.classList.toggle("active"); }
+    else if (e.key === "r" || e.key === "R") { e.preventDefault(); ragToggleBtn.click(); }
   }
   if (e.key === "Escape") {
     imageModal.classList.remove("active");
     shortcutsModal.classList.remove("active");
-    historyModal.classList.remove("active");
     settingsModal.classList.remove("active");
     if (isGenerating && currentAbortController) currentAbortController.abort();
   }
 });
+
 closeShortcuts.onclick = () => shortcutsModal.classList.remove("active");
 shortcutsModal.addEventListener("click", (e) => { if (e.target === shortcutsModal) shortcutsModal.classList.remove("active"); });
-historyModal.addEventListener("click", (e) => { if (e.target === historyModal) historyModal.classList.remove("active"); });

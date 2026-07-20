@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
   "name": "Local AI Multimodal Sidebar",
-  "version": "3.0.3",
-  "description": "Modern Firefox AI assistant with vision, voice, and local LLM support.",
+  "version": "3.2.1",
+  "description": "Modern Firefox AI assistant with vision, voice, RAG, and local LLM support.",
   "permissions": [
     "contextMenus",
     "activeTab",
@@ -12,9 +12,9 @@
   "host_permissions": [
     "http://localhost:11434/",
     "http://127.0.0.1:11434/",
-    "http://localhost:*/",
-    "http://127.0.0.1:*/",
-    "*://*/*"
+    "http://localhost/",
+    "http://127.0.0.1/",
+    "<all_urls>"
   ],
   "background": {
     "scripts": ["background.js"]
