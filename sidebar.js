@@ -1,76 +1,86 @@
+/* ============ PDF.js Setup (Local) ============ */
+if (typeof pdfjsLib !== 'undefined') {
+  pdfjsLib.GlobalWorkerOptions.workerSrc = browser.runtime.getURL('lib/pdfjs/pdf.worker.min.js');
+}
+
 /* ============ DOM refs ============ */
-const chatContainer = document.getElementById("chat-container");
-const userInput = document.getElementById("user-input");
-const sendBtn = document.getElementById("send-btn");
-const stopBtn = document.getElementById("stop-btn");
+const chatContainer     = document.getElementById("chat-container");
+const userInput         = document.getElementById("user-input");
+const sendBtn           = document.getElementById("send-btn");
+const stopBtn           = document.getElementById("stop-btn");
 const toggleSettingsBtn = document.getElementById("toggle-settings");
-const settingsModal = document.getElementById("settings-modal");
-const closeSettings = document.getElementById("close-settings");
-const btnFetchModels = document.getElementById("btn-fetch-models");
-const cfgUrl = document.getElementById("cfg-url");
-const cfgModel = document.getElementById("cfg-model");
-const cfgSystemPrompt = document.getElementById("cfg-system-prompt");
-const cfgTemp = document.getElementById("cfg-temp");
-const cfgCtx = document.getElementById("cfg-ctx");
-const cfgStream = document.getElementById("cfg-stream");
-const tempVal = document.getElementById("temp-val");
-const currentModelTag = document.getElementById("current-model-tag");
-const filePicker = document.getElementById("file-picker");
-const attachBtn = document.getElementById("attach-btn");
-const previewZone = document.getElementById("input-preview-zone");
-const clearBtn = document.getElementById("clear-btn");
-const themeChips = document.querySelectorAll(".theme-chip");
-const statusDot = document.getElementById("status-indicator");
-const statusText = document.getElementById("status-text");
-const tokenCounter = document.getElementById("token-counter");
-const exportBtn = document.getElementById("export-btn");
-const exportMdBtn = document.getElementById("export-md-btn");
-const importBtn = document.getElementById("import-btn");
-const importFile = document.getElementById("import-file");
-const cfgOpenaiMode = document.getElementById("cfg-openai-mode");
-const cfgApiKey = document.getElementById("cfg-api-key");
-const apiKeyGroup = document.getElementById("api-key-group");
-const chatTitle = document.getElementById("chat-title");
-const emptyState = document.getElementById("empty-state");
-const ttsToggleBtn = document.getElementById("tts-toggle-btn");
-const cfgShowThinking = document.getElementById("cfg-show-thinking");
-const cfgAutoTts = document.getElementById("cfg-auto-tts");
-const imageModal = document.getElementById("image-modal");
-const modalImage = document.getElementById("modal-image");
-const closeModal = document.getElementById("close-modal");
-const shortcutsModal = document.getElementById("shortcuts-modal");
-const closeShortcuts = document.getElementById("close-shortcuts");
-const toastContainer = document.getElementById("toast-container");
-const historyList = document.getElementById("history-list");
-const searchInput = document.getElementById("search-input");
-const fontSizeBtns = document.querySelectorAll(".font-size-btn");
-const historyPanel = document.getElementById("history-panel");
-const toggleHistoryBtn = document.getElementById("toggle-history");
-const newChatBtn = document.getElementById("new-chat-btn");
-const inputArea = document.getElementById("input-area");
+const settingsModal     = document.getElementById("settings-modal");
+const closeSettings     = document.getElementById("close-settings");
+const btnFetchModels    = document.getElementById("btn-fetch-models");
+const cfgUrl            = document.getElementById("cfg-url");
+const cfgModel          = document.getElementById("cfg-model");
+const cfgSystemPrompt   = document.getElementById("cfg-system-prompt");
+const cfgTemp           = document.getElementById("cfg-temp");
+const cfgCtx            = document.getElementById("cfg-ctx");
+const cfgStream         = document.getElementById("cfg-stream");
+const tempVal           = document.getElementById("temp-val");
+const currentModelTag   = document.getElementById("current-model-tag");
+const filePicker        = document.getElementById("file-picker");
+const attachBtn         = document.getElementById("attach-btn");
+const previewZone       = document.getElementById("input-preview-zone");
+const clearBtn          = document.getElementById("clear-btn");
+const themeChips        = document.querySelectorAll(".theme-chip");
+const statusDot         = document.getElementById("status-indicator");
+const statusText        = document.getElementById("status-text");
+const tokenCounter      = document.getElementById("token-counter");
+const newConvBtn        = document.getElementById("new-conversation-btn");
+const exportBtn         = document.getElementById("export-btn");
+const exportMdBtn       = document.getElementById("export-md-btn");
+const importBtn         = document.getElementById("import-btn");
+const importFile        = document.getElementById("import-file");
+const cfgOpenaiMode     = document.getElementById("cfg-openai-mode");
+const cfgApiKey         = document.getElementById("cfg-api-key");
+const apiKeyGroup       = document.getElementById("api-key-group");
+const chatTitle         = document.getElementById("chat-title");
+const chatMeta          = document.getElementById("chat-meta");
+const emptyState        = document.getElementById("empty-state");
+const voiceBtn          = document.getElementById("voice-btn");
+const ttsToggleBtn      = document.getElementById("tts-toggle-btn");
+const promptTemplates   = document.getElementById("prompt-templates");
+const cfgShowThinking   = document.getElementById("cfg-show-thinking");
+const cfgAutoTts        = document.getElementById("cfg-auto-tts");
+const imageModal        = document.getElementById("image-modal");
+const modalImage        = document.getElementById("modal-image");
+const closeModal        = document.getElementById("close-modal");
+const shortcutsModal    = document.getElementById("shortcuts-modal");
+const closeShortcuts    = document.getElementById("close-shortcuts");
+const toastContainer    = document.getElementById("toast-container");
+const historyBtn        = document.getElementById("history-btn");
+const historyModal      = document.getElementById("history-modal");
+const historyList       = document.getElementById("history-list");
+const closeHistory      = document.getElementById("close-history");
+const searchInput       = document.getElementById("search-input");
+const fontSizeBtns      = document.querySelectorAll(".font-size-btn");
 
 // RAG DOM refs
-const cfgRagModel = document.getElementById("cfg-rag-model");
-const cfgRagTopk = document.getElementById("cfg-rag-topk");
-const cfgRagChunkSize = document.getElementById("cfg-rag-chunk-size");
-const ragUrlInput = document.getElementById("rag-url-input");
-const ragIndexUrlBtn = document.getElementById("rag-index-url");
-const ragFileInput = document.getElementById("rag-file-input");
-const ragIndexFileBtn = document.getElementById("rag-index-file");
-const ragIndexStatus = document.getElementById("rag-index-status");
-const ragDocList = document.getElementById("rag-doc-list");
-const ragClearAllBtn = document.getElementById("rag-clear-all");
-const ragToggleBtn = document.getElementById("rag-toggle-btn");
+const cfgRagModel       = document.getElementById("cfg-rag-model");
+const cfgRagTopk        = document.getElementById("cfg-rag-topk");
+const cfgRagChunkSize   = document.getElementById("cfg-rag-chunk-size");
+const ragUrlInput       = document.getElementById("rag-url-input");
+const ragIndexUrlBtn    = document.getElementById("rag-index-url");
+const ragFileInput      = document.getElementById("rag-file-input");
+const ragIndexFileBtn   = document.getElementById("rag-index-file");
+const ragIndexStatus    = document.getElementById("rag-index-status");
+const ragDocList        = document.getElementById("rag-doc-list");
+const ragClearAllBtn    = document.getElementById("rag-clear-all");
+const ragToggleBtn      = document.getElementById("rag-toggle-btn");
+const ragStatus         = document.getElementById("rag-status");
 
 // Settings tabs
-const settingsTabs = document.querySelectorAll(".settings-tab");
-const settingsPanels = document.querySelectorAll(".settings-panel");
-const cfgPresetPrompt = document.getElementById("cfg-preset-prompt");
-const btnPullModel = document.getElementById("btn-pull-model");
-const pullModelUi = document.getElementById("pull-model-ui");
-const pullModelName = document.getElementById("pull-model-name");
-const btnConfirmPull = document.getElementById("btn-confirm-pull");
-const pullProgress = document.getElementById("pull-progress");
+const settingsTabs      = document.querySelectorAll(".settings-tab");
+const settingsTabContents = document.querySelectorAll(".settings-tab-content");
+const cfgPresetPrompt   = document.getElementById("cfg-preset-prompt");
+const btnPullModel      = document.getElementById("btn-pull-model");
+const pullModelUi       = document.getElementById("pull-model-ui");
+const pullModelName     = document.getElementById("pull-model-name");
+const btnConfirmPull    = document.getElementById("btn-confirm-pull");
+const pullProgress      = document.getElementById("pull-progress");
+const newConvBtnHistory = document.getElementById("new-conversation-btn-history");
 
 /* ============ State ============ */
 let currentImages = [];
@@ -104,14 +114,14 @@ function toast(message, type = "info", duration = 3000) {
   }, duration);
 }
 
-/* ============ Settings Tabs (FIXED) ============ */
+/* ============ Settings Tabs ============ */
 settingsTabs.forEach(tab => {
   tab.addEventListener("click", () => {
     const targetTab = tab.dataset.tab;
     settingsTabs.forEach(t => t.classList.remove("active"));
-    settingsPanels.forEach(p => p.classList.remove("active"));
+    settingsTabContents.forEach(c => c.classList.remove("active"));
     tab.classList.add("active");
-    document.querySelector(`.settings-panel[data-tab-content="${targetTab}"]`).classList.add("active");
+    document.querySelector(`[data-tab-content="${targetTab}"]`).classList.add("active");
   });
 });
 
@@ -133,6 +143,7 @@ browser.storage.local.get([
   if (res.showThinking) cfgShowThinking.checked = res.showThinking;
   if (res.autoTts) cfgAutoTts.checked = res.autoTts;
   
+  if (res.ragModel) cfgRagModel.value = res.ragModel;
   if (res.ragTopk) cfgRagTopk.value = res.ragTopk;
   if (res.ragChunkSize) cfgRagChunkSize.value = res.ragChunkSize;
   if (res.ragEnabled) { ragEnabled = res.ragEnabled; updateRagToggleUI(); }
@@ -141,10 +152,19 @@ browser.storage.local.get([
   if (res.fontSize) {
     document.body.classList.add(`font-${res.fontSize}`);
     fontSizeBtns.forEach(b => b.classList.toggle("active", b.dataset.size === res.fontSize));
+  } else {
+    fontSizeBtns.forEach(b => b.classList.toggle("active", b.dataset.size === "14"));
   }
 
   conversations = res.conversations || {};
   activeConvId = res.activeConvId || null;
+  
+  if (res.selectedModel) {
+    currentModelTag.innerText = res.selectedModel;
+    const opt = document.createElement("option");
+    opt.value = res.selectedModel; opt.textContent = res.selectedModel;
+    cfgModel.appendChild(opt); cfgModel.value = res.selectedModel;
+  }
   
   if (!activeConvId || !conversations[activeConvId]) {
     createConversation(true);
@@ -164,6 +184,7 @@ browser.storage.local.get([
     }
   });
   
+  initVoiceRecognition();
   loadRagDocuments();
 });
 
@@ -200,46 +221,65 @@ ragToggleBtn.addEventListener("click", () => {
   toast(ragEnabled ? "RAG enabled" : "RAG disabled", "info", 1500);
 });
 function updateRagToggleUI() {
-  ragToggleBtn.classList.toggle("active", ragEnabled);
-  ragToggleBtn.title = ragEnabled ? "RAG Enabled (click to disable)" : "RAG Disabled (click to enable)";
+  if (ragEnabled) {
+    ragToggleBtn.classList.add("active");
+    ragToggleBtn.title = "RAG Enabled (click to disable)";
+    ragStatus.style.display = "inline";
+  } else {
+    ragToggleBtn.classList.remove("active");
+    ragToggleBtn.title = "RAG Disabled (click to enable)";
+    ragStatus.style.display = "none";
+  }
 }
 
-/* ============ Markdown Parser ============ */
+/* ============ Markdown Parser (Marked + DOMPurify) ============ */
 function parseMarkdownToHtml(md) {
-  const codeBlocks = [];
-  let text = md.replace(/```(\w*)\n?([\s\S]*?)```/g, (_, lang, code) => {
-    const btnHtml = `<button class="copy-code-btn" onclick="window.copyCodeBlock(this)">📋 Copy</button>`;
-    const langClass = lang ? `language-${lang}` : "language-text";
-    codeBlocks.push(`<pre class="code-block" data-lang="${lang || 'text'}">${btnHtml}<code class="${langClass}">${escapeHtml(code.trim())}</code></pre>`);
-    return `\u0000CB${codeBlocks.length - 1}\u0000`;
-  });
-  text = escapeHtml(text);
-  text = text.replace(/`([^`\n]+)`/g, '<code class="inline-code">$1</code>');
-  text = text.replace(/^### (.+)$/gm, '<h4>$1</h4>');
-  text = text.replace(/^## (.+)$/gm, '<h3>$1</h3>');
-  text = text.replace(/^# (.+)$/gm, '<h2>$1</h2>');
-  text = text.replace(/\*\*([^*]+)\*\*/g, '<strong>$1</strong>');
-  text = text.replace(/\*([^\*\n]+)\*/g, '<em>$1</em>');
-  text = text.replace(/\[([^\]]+)\]\(([^)]+)\)/g, '<a href="$2" target="_blank" rel="noopener">$1</a>');
-  text = text.replace(/^\s*[-*]\s+(.+)$/gm, '<li>$1</li>');
-  text = text.replace(/(<li>.*<\/li>\n?)+/g, m => `<ul>${m}</ul>`);
-  text = text.replace(/\n{2,}/g, '</p><p>');
-  text = text.replace(/\n/g, '<br>');
-  text = `<p>${text}</p>`;
-  text = text.replace(/\u0000CB(\d+)\u0000/g, (_, i) => codeBlocks[+i]);
-  return text;
+  if (typeof marked === 'undefined') {
+    return md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+  }
+  marked.setOptions({ breaks: true, gfm: true });
+  let html = marked.parse(md);
+  if (typeof DOMPurify !== 'undefined') {
+    html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'class'] });
+  }
+  return html;
 }
+
 function escapeHtml(s) {
+  if (!s) return "";
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
-window.copyCodeBlock = function(btn) {
-  const code = btn.nextElementSibling.innerText;
-  navigator.clipboard.writeText(code).then(() => {
-    btn.textContent = "✅ Copied!";
-    toast("Code copied", "success", 1500);
-    setTimeout(() => btn.textContent = "📋 Copy", 1500);
+
+/* ============ Syntax Highlighting & Code Block Enhancements ============ */
+function enhanceCodeBlocks(container) {
+  if (typeof hljs === 'undefined') return;
+  const codeBlocks = container.querySelectorAll('pre code');
+  codeBlocks.forEach(block => {
+    const pre = block.parentElement;
+    const classes = block.className.split(' ');
+    const langClass = classes.find(c => c.startsWith('language-'));
+    if (langClass) {
+      pre.setAttribute('data-lang', langClass.replace('language-', ''));
+    } else {
+      pre.setAttribute('data-lang', 'text');
+    }
+    if (!pre.querySelector('.copy-code-btn')) {
+      const btn = document.createElement('button');
+      btn.className = 'copy-code-btn';
+      btn.textContent = '📋 Copy';
+      btn.addEventListener('click', () => {
+        navigator.clipboard.writeText(block.innerText).then(() => {
+          btn.textContent = "✅ Copied!";
+          setTimeout(() => btn.textContent = "📋 Copy", 1500);
+        });
+      });
+      pre.prepend(btn);
+    }
+    if (!block.classList.contains('hljs')) {
+      hljs.highlightElement(block);
+    }
   });
-};
+}
 
 /* ============ Auto-Scroll ============ */
 function autoScrollChat() {
@@ -276,6 +316,14 @@ function renameConversation(id, e) {
     toast("Conversation renamed", "success");
   }
 }
+function pinConversation(id, e) {
+  e.stopPropagation();
+  const conv = conversations[id];
+  conv.pinned = !conv.pinned;
+  saveConversations();
+  renderHistoryList();
+  toast(conv.pinned ? "Conversation pinned 📌" : "Unpinned");
+}
 function deleteConversation(id, e) {
   e.stopPropagation();
   if (!confirm("Delete this conversation?")) return;
@@ -295,7 +343,7 @@ function saveConversations() { browser.storage.local.set({ conversations, active
 
 function renderHistoryList() {
   historyList.innerHTML = "";
-  const allConvs = Object.values(conversations).sort((a, b) => b.createdAt - a.createdAt);
+  const allConvs = Object.values(conversations).sort((a, b) => (b.pinned === a.pinned ? b.createdAt - a.createdAt : b.pinned ? 1 : -1));
   const searchTerm = searchInput.value.toLowerCase();
   const filtered = allConvs.filter(c => {
     if (!searchTerm) return true;
@@ -304,31 +352,30 @@ function renderHistoryList() {
   });
   
   if (filtered.length === 0) {
-    historyList.innerHTML = `<div style="text-align:center; padding:30px 20px; color:var(--text-secondary); font-size: 13px;">No conversations found.</div>`;
+    historyList.innerHTML = `<div style="text-align:center; padding:30px 20px; color:var(--fg-muted); font-size: 13px;">No conversations found.</div>`;
     return;
   }
   
   filtered.forEach(c => {
     const item = document.createElement("div");
     item.className = "history-item" + (c.id === activeConvId ? " active" : "");
-    item.innerHTML = `
-      <div class="history-item-title">${escapeHtml(c.title)}</div>
-      <div class="history-item-actions">
-        <button data-action="rename" title="Rename">✏️</button>
-        <button data-action="delete" title="Delete">🗑️</button>
-      </div>`;
-    item.onclick = () => {
+    item.innerHTML = `<div class="history-item-title">${c.pinned ? '📌 ' : ''}${escapeHtml(c.title)}</div><div class="history-item-actions"><button data-action="pin" title="${c.pinned ? 'Unpin' : 'Pin'}">${c.pinned ? '📌' : '📍'}</button><button data-action="rename" title="Rename">✏️</button><button data-action="delete" title="Delete">🗑️</button></div>`;
+    item.addEventListener("click", (e) => {
+      if (e.target.closest('.history-item-actions')) return;
       switchConversation(c.id);
-      if (window.innerWidth < 600) historyPanel.classList.add("collapsed");
-    };
-    item.querySelector('[data-action="rename"]').onclick = (e) => { e.stopPropagation(); renameConversation(c.id, e); };
-    item.querySelector('[data-action="delete"]').onclick = (e) => { e.stopPropagation(); deleteConversation(c.id, e); };
+      historyModal.classList.remove('active');
+    });
+    item.querySelector('[data-action="pin"]').addEventListener("click", (e) => { e.stopPropagation(); pinConversation(c.id, e); });
+    item.querySelector('[data-action="rename"]').addEventListener("click", (e) => { e.stopPropagation(); renameConversation(c.id, e); });
+    item.querySelector('[data-action="delete"]').addEventListener("click", (e) => { e.stopPropagation(); deleteConversation(c.id, e); });
     historyList.appendChild(item);
   });
 }
 
-newChatBtn.onclick = () => createConversation(true);
-toggleHistoryBtn.onclick = () => historyPanel.classList.toggle("collapsed");
+newConvBtn.addEventListener("click", () => { createConversation(true); historyModal.classList.remove('active'); });
+newConvBtnHistory.addEventListener("click", () => { createConversation(true); historyModal.classList.remove('active'); });
+historyBtn.addEventListener("click", () => { renderHistoryList(); historyModal.classList.add('active'); });
+closeHistory.addEventListener("click", () => historyModal.classList.remove('active'));
 searchInput.addEventListener("input", renderHistoryList);
 
 /* ============ Rendering ============ */
@@ -337,13 +384,14 @@ function renderMessages() {
   const conv = conversations[activeConvId];
   if (!conv) return;
   chatTitle.textContent = conv.title;
+  chatMeta.innerHTML = `${conv.messages.length} messages · <span>${tokenCounter.textContent || '~0 tokens'}</span>`;
   
   if (conv.messages.length === 0) {
     const empty = emptyState.cloneNode(true);
     empty.style.display = "flex";
     chatContainer.appendChild(empty);
     empty.querySelectorAll(".quick-btn").forEach(btn => {
-      btn.onclick = () => { userInput.value = btn.dataset.prompt; userInput.focus(); autoResizeTextarea(); };
+      btn.addEventListener("click", () => { userInput.value = btn.dataset.prompt; userInput.focus(); autoResizeTextarea(); });
     });
     return;
   }
@@ -382,7 +430,7 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
       imgEl.classList.add("thumb-preview");
       imgEl.style.maxWidth = "200px";
       imgEl.style.marginTop = "6px";
-      imgEl.onclick = () => openImageModal(imgEl.src);
+      imgEl.addEventListener("click", () => openImageModal(imgEl.src));
       msg.appendChild(imgEl);
     });
   }
@@ -406,8 +454,9 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
     actions.appendChild(mkBtn("🔊 Read", () => speakText(text)));
   }
   wrapper.appendChild(actions);
-  
   chatContainer.appendChild(wrapper);
+  
+  enhanceCodeBlocks(msg); // Apply syntax highlighting
   autoScrollChat();
   
   if (save) {
@@ -426,7 +475,8 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
 
 function mkBtn(label, handler) {
   const b = document.createElement("span");
-  b.className = "action-link"; b.textContent = label; b.onclick = handler;
+  b.className = "action-link"; b.textContent = label; 
+  b.addEventListener("click", handler);
   return b;
 }
 
@@ -539,9 +589,9 @@ cfgCtx.addEventListener("change", () => browser.storage.local.set({ contextLengt
 cfgStream.addEventListener("change", () => browser.storage.local.set({ stream: cfgStream.checked }));
 
 // RAG Settings Listeners
+cfgRagModel.addEventListener("change", () => browser.storage.local.set({ ragModel: cfgRagModel.value }));
 cfgRagTopk.addEventListener("change", () => browser.storage.local.set({ ragTopk: parseInt(cfgRagTopk.value) }));
 cfgRagChunkSize.addEventListener("change", () => browser.storage.local.set({ ragChunkSize: parseInt(cfgRagChunkSize.value) }));
-cfgRagModel.addEventListener("change", () => browser.storage.local.set({ ragModel: cfgRagModel.value }));
 
 cfgPresetPrompt.addEventListener("change", () => {
   const val = cfgPresetPrompt.value;
@@ -617,10 +667,14 @@ ragIndexFileBtn.addEventListener("click", async () => {
       let text = "";
       if (file.type === "application/pdf") {
         text = await extractTextFromPDF(file);
+      } else if (file.type.startsWith("audio/")) {
+        text = await transcribeAudio(file);
       } else {
         text = await file.text();
       }
-      if (!text || text.length < 50) throw new Error(`No extractable text from ${file.name}`);
+      if (!text || text.length < 50) {
+        throw new Error(`No extractable text from ${file.name}`);
+      }
       await indexContent(file.name, text);
     }
     ragIndexStatus.textContent = `✅ Indexed ${files.length} file(s)`;
@@ -633,7 +687,6 @@ ragIndexFileBtn.addEventListener("click", async () => {
   }
 });
 
-// FIXED PDF Extraction with graceful fallback
 async function extractTextFromPDF(file) {
   if (typeof pdfjsLib === 'undefined') {
     throw new Error("PDF.js library is missing. Ensure 'lib/pdfjs/pdf.min.js' is in your extension folder.");
@@ -649,6 +702,10 @@ async function extractTextFromPDF(file) {
   return text;
 }
 
+async function transcribeAudio(file) {
+  return `[Audio file: ${file.name} - Transcription requires whisper model. Please transcribe manually or use whisper.cpp]`;
+}
+
 chatTitle.addEventListener("blur", () => {
   const conv = conversations[activeConvId];
   if (conv) {
@@ -661,36 +718,20 @@ chatTitle.addEventListener("keydown", (e) => {
 });
 
 fontSizeBtns.forEach(btn => {
-  btn.onclick = () => {
+  btn.addEventListener("click", () => {
     document.body.classList.remove("font-sm", "font-md", "font-lg");
     const size = btn.dataset.size;
     const cls = size === '12' ? 'sm' : size === '14' ? 'md' : 'lg';
     document.body.classList.add(`font-${cls}`);
     browser.storage.local.set({ fontSize: cls });
     fontSizeBtns.forEach(b => b.classList.toggle("active", b === btn));
-  };
+  });
 });
 
 attachBtn.addEventListener("click", () => filePicker.click());
 filePicker.addEventListener("change", async e => {
   await handleFiles(Array.from(e.target.files));
   filePicker.value = "";
-});
-
-// Drag & Drop Support
-inputArea.addEventListener("dragover", (e) => {
-  e.preventDefault();
-  inputArea.classList.add("drag-over");
-});
-inputArea.addEventListener("dragleave", () => {
-  inputArea.classList.remove("drag-over");
-});
-inputArea.addEventListener("drop", async (e) => {
-  e.preventDefault();
-  inputArea.classList.remove("drag-over");
-  if (e.dataTransfer.files.length > 0) {
-    await handleFiles(Array.from(e.dataTransfer.files));
-  }
 });
 
 async function handleFiles(files) {
@@ -701,7 +742,7 @@ async function handleFiles(files) {
       const thumb = document.createElement("img");
       thumb.src = `data:${file.type};base64,${b64}`;
       thumb.className = "thumb-preview";
-      thumb.onclick = () => openImageModal(thumb.src);
+      thumb.addEventListener("click", () => openImageModal(thumb.src));
       previewZone.appendChild(thumb);
     } else {
       const txt = await file.text();
@@ -723,8 +764,32 @@ function fileToBase64(file) {
 
 /* ============ Image Modal ============ */
 function openImageModal(src) { modalImage.src = src; imageModal.classList.add("active"); }
-closeModal.onclick = () => imageModal.classList.remove("active");
-imageModal.onclick = (e) => { if (e.target === imageModal) imageModal.classList.remove("active"); };
+closeModal.addEventListener("click", () => imageModal.classList.remove("active"));
+imageModal.addEventListener("click", (e) => { if (e.target === imageModal) imageModal.classList.remove("active"); });
+
+/* ============ Voice Input ============ */
+function initVoiceRecognition() {
+  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+  if (!SpeechRecognition) { voiceBtn.style.display = "none"; return; }
+  recognition = new SpeechRecognition();
+  recognition.continuous = false; recognition.interimResults = true; recognition.lang = "en-US";
+  recognition.onresult = (event) => {
+    const transcript = Array.from(event.results).map(r => r[0].transcript).join(" ");
+    userInput.value = transcript; autoResizeTextarea();
+  };
+  recognition.onend = () => {
+    isRecording = false; voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤";
+  };
+  recognition.onerror = (e) => {
+    toast("Voice error: " + e.error, "error");
+    isRecording = false; voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤";
+  };
+}
+voiceBtn.addEventListener("click", () => {
+  if (!recognition) return toast("Voice not supported", "error");
+  if (isRecording) { recognition.stop(); }
+  else { recognition.start(); isRecording = true; voiceBtn.classList.add("recording"); voiceBtn.textContent = "⏹"; toast("Listening...", "info", 1500); }
+});
 
 /* ============ Text-to-Speech ============ */
 function speakText(text) {
@@ -735,13 +800,28 @@ function speakText(text) {
   utter.rate = 1; utter.pitch = 1;
   speechSynthesis.speak(utter);
 }
-ttsToggleBtn.onclick = () => {
+ttsToggleBtn.addEventListener("click", () => {
   const conv = conversations[activeConvId];
   if (!conv) return;
   const lastAssistant = [...conv.messages].reverse().find(m => m.sender === "assistant");
   if (lastAssistant) speakText(lastAssistant.text);
   else toast("No assistant message to read", "warning");
-};
+});
+
+/* ============ Prompt Templates ============ */
+promptTemplates.addEventListener("change", (e) => {
+  const templates = {
+    summarize: "Please summarize the following content concisely:\n\n",
+    explain: "Explain the following concept in simple terms:\n\n",
+    translate: "Translate the following text to English:\n\n",
+    "code-review": "Review this code for bugs, improvements, and best practices:\n\n```\n\n```\n",
+    brainstorm: "Help me brainstorm ideas for: ",
+    refactor: "Refactor this code to improve readability and performance:\n\n```\n\n```\n"
+  };
+  const val = e.target.value;
+  if (templates[val]) { userInput.value = templates[val]; userInput.focus(); autoResizeTextarea(); }
+  e.target.value = "";
+});
 
 /* ============ Incoming prompts ============ */
 browser.runtime.onMessage.addListener(handleIncomingPrompt);
@@ -778,9 +858,9 @@ stopBtn.addEventListener("click", () => {
   if (speechSynthesis.speaking) speechSynthesis.cancel();
 });
 
-/* ============ RAG Engine ============ */
+/* ============ RAG Engine - FIXED ============ */
 const DB_NAME = 'LocalAIRAG';
-const DB_VERSION = 2;
+const DB_VERSION = 2; // Incremented to force creation of the missing 'documents' store
 const STORE_NAME = 'chunks';
 const DOCS_STORE = 'documents';
 
@@ -809,7 +889,7 @@ async function getEmbedding(text, model) {
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ model: model, prompt: text })
   });
-  if (!res.ok) throw new Error('Embedding API failed. Ensure the model is pulled.');
+  if (!res.ok) throw new Error('Embedding API failed');
   const data = await res.json();
   return data.embedding;
 }
@@ -893,7 +973,7 @@ async function loadRagDocuments() {
   request.onsuccess = () => {
     const docs = request.result;
     if (docs.length === 0) {
-      ragDocList.innerHTML = `<div class="empty-docs">No documents indexed yet</div>`;
+      ragDocList.innerHTML = `<div style="text-align:center; padding:20px; color:var(--fg-muted); font-size:12px;">No documents indexed yet</div>`;
       return;
     }
     ragDocList.innerHTML = "";
@@ -901,24 +981,24 @@ async function loadRagDocuments() {
       const item = document.createElement("div");
       item.className = "rag-doc-item";
       item.innerHTML = `
-        <div>
+        <div class="rag-doc-info">
           <div class="rag-doc-name">${escapeHtml(doc.name)}</div>
           <div class="rag-doc-meta">${doc.chunks} chunks · ${new Date(doc.timestamp).toLocaleDateString()}</div>
         </div>
-        <button class="icon-btn rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">🗑️</button>
+        <button class="rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">🗑️</button>
       `;
       ragDocList.appendChild(item);
     });
     
     ragDocList.querySelectorAll('.rag-doc-delete').forEach(btn => {
-      btn.onclick = async () => {
+      btn.addEventListener("click", async () => {
         const name = btn.dataset.name;
         if (confirm(`Delete "${name}" from knowledge base?`)) {
           await deleteRagDocument(name);
           loadRagDocuments();
           toast("Document deleted", "success");
         }
-      };
+      });
     });
   };
 }
@@ -1073,10 +1153,12 @@ function updateStreamingMessage(msgDiv, content, thinking, final = false) {
   }
   html += `<div class="message-content">${content ? parseMarkdownToHtml(content) : '<div class="typing-indicator"><span></span><span></span><span></span></div>'}</div>`;
   msgDiv.innerHTML = html;
+  
+  enhanceCodeBlocks(msgDiv); // Apply syntax highlighting during stream
   autoScrollChat();
 }
 
-/* ============ Model fetching (Enhanced for RAG) ============ */
+/* ============ Model fetching ============ */
 async function fetchOllamaModels() {
   try {
     const baseUrl = cfgUrl.value.trim().replace(/\/$/, "");
@@ -1095,12 +1177,10 @@ async function fetchOllamaModels() {
     
     if (data.models && data.models.length > 0) {
       data.models.forEach(m => {
-        // Main model dropdown
         const o = document.createElement("option");
         o.value = m.name; o.textContent = m.name;
         cfgModel.appendChild(o);
         
-        // RAG embedding dropdown
         const ragOpt = document.createElement("option");
         ragOpt.value = m.name; ragOpt.textContent = m.name;
         cfgRagModel.appendChild(ragOpt);
@@ -1108,7 +1188,6 @@ async function fetchOllamaModels() {
         if (m.name === defaultEmbed) hasDefaultEmbed = true;
       });
       
-      // Ensure default embedding model is in the list even if not pulled
       if (!hasDefaultEmbed) {
         const ragOpt = document.createElement("option");
         ragOpt.value = defaultEmbed;
@@ -1116,7 +1195,6 @@ async function fetchOllamaModels() {
         cfgRagModel.prepend(ragOpt);
       }
       
-      // Restore saved selections
       browser.storage.local.get(["selectedModel", "ragModel"]).then(res => {
         if (res.selectedModel) cfgModel.value = res.selectedModel;
         if (res.ragModel) cfgRagModel.value = res.ragModel;
@@ -1157,13 +1235,14 @@ function updateTokenCounter() {
   conv.messages.forEach(m => { if (m.text) totalChars += m.text.length; });
   const estimatedTokens = Math.round(totalChars / 4);
   tokenCounter.textContent = `~${estimatedTokens} tokens`;
+  chatMeta.innerHTML = `${conv.messages.length} messages · <span>${tokenCounter.textContent}</span>`;
 }
 
 /* ============ Keyboard Shortcuts ============ */
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey || e.metaKey) {
     if (e.key === "n" || e.key === "N") { e.preventDefault(); createConversation(true); }
-    else if (e.key === "k" || e.key === "K") { e.preventDefault(); searchInput.focus(); historyPanel.classList.remove("collapsed"); }
+    else if (e.key === "k" || e.key === "K") { e.preventDefault(); historyBtn.click(); }
     else if (e.key === "e" || e.key === "E") { e.preventDefault(); exportBtn.click(); }
     else if (e.key === ",") { e.preventDefault(); toggleSettingsBtn.click(); }
     else if (e.key === "/" || e.key === "?") { e.preventDefault(); shortcutsModal.classList.toggle("active"); }
@@ -1172,10 +1251,12 @@ document.addEventListener("keydown", (e) => {
   if (e.key === "Escape") {
     imageModal.classList.remove("active");
     shortcutsModal.classList.remove("active");
+    historyModal.classList.remove("active");
     settingsModal.classList.remove("active");
     if (isGenerating && currentAbortController) currentAbortController.abort();
   }
 });
 
-closeShortcuts.onclick = () => shortcutsModal.classList.remove("active");
+closeShortcuts.addEventListener("click", () => shortcutsModal.classList.remove("active"));
 shortcutsModal.addEventListener("click", (e) => { if (e.target === shortcutsModal) shortcutsModal.classList.remove("active"); });
+historyModal.addEventListener("click", (e) => { if (e.target === historyModal) historyModal.classList.remove("active"); });
