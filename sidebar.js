@@ -93,6 +93,15 @@ let recognition = null;
 let isRecording = false;
 let ragEnabled = false;
 
+
+
+const DB_NAME = 'LocalAIRAG';
+const DB_VERSION = 2;
+const STORE_NAME = 'chunks';
+const DOCS_STORE = 'documents';
+
+
+
 const predefinedPrompts = {
   "default": "",
   "coder": "You are an expert software engineer. Provide clean, efficient, and well-documented code. Explain your reasoning.",
@@ -114,7 +123,7 @@ function toast(message, type = "info", duration = 3000) {
   }, duration);
 }
 
-/* ============ Settings Tabs ============ */
+/* ============ Settings Tabs ============
 settingsTabs.forEach(tab => {
   tab.addEventListener("click", () => {
     const targetTab = tab.dataset.tab;
@@ -124,6 +133,31 @@ settingsTabs.forEach(tab => {
     document.querySelector(`[data-tab-content="${targetTab}"]`).classList.add("active");
   });
 });
+
+*/
+
+/* ============ Settings Tabs ============ */
+settingsTabs.forEach(tab => {
+  tab.addEventListener("click", () => {
+    const targetTab = tab.dataset.tab;
+
+    // Remove active class from all tabs and contents
+    settingsTabs.forEach(t => t.classList.remove("active"));
+    settingsTabContents.forEach(c => c.classList.remove("active"));
+
+    // Add active class to clicked tab
+    tab.classList.add("active");
+
+    // Find and activate the correct content panel safely
+    const targetContent = document.querySelector(`[data-tab-content="${targetTab}"]`);
+    if (targetContent) {
+      targetContent.classList.add("active");
+    } else {
+      console.warn(`[Settings] Could not find content panel for tab: "${targetTab}". Check your HTML data-tab-content attributes.`);
+    }
+  });
+});
+
 
 /* ============ Init ============ */
 browser.storage.local.get([
@@ -1010,10 +1044,6 @@ stopBtn.addEventListener("click", () => {
 });
 
 /* ============ RAG Engine - FIXED ============ */
-const DB_NAME = 'LocalAIRAG';
-const DB_VERSION = 2; // Incremented to force creation of the missing 'documents' store
-const STORE_NAME = 'chunks';
-const DOCS_STORE = 'documents';
 
 function openDB() {
   return new Promise((resolve, reject) => {
