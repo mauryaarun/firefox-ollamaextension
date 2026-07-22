@@ -1,13 +1,15 @@
 {
   "manifest_version": 3,
-  "name": "Local AI Multimodal Sidebar",
-  "version": "3.2.1",
-  "description": "Modern Firefox AI assistant with vision, voice, RAG, and local LLM support.",
+  "name": "ChatAI🧠 Local Multimodal AI Assistant Sidebar",
+  "version": "3.2.3",
+  "description": "ChatAI🧠 is local multimodal AI assistant for Firefox with chat featuring vision, voice, RAG, and local Ollama & OpenAI compatible LLM provider.",
   "permissions": [
     "contextMenus",
     "activeTab",
+
     "storage",
-    "scripting"
+    "scripting",
+    "tabs"
   ],
   "host_permissions": [
     "http://localhost:11434/",
@@ -20,7 +22,7 @@
     "scripts": ["background.js"]
   },
   "action": {
-    "default_title": "Toggle AI Sidebar",
+    "default_title": "Toggle ChatAI🧠 Sidebar",
     "default_icon": {
       "16": "icons/icon16.png",
       "32": "icons/icon32.png",
@@ -28,7 +30,7 @@
     }
   },
   "sidebar_action": {
-    "default_title": "🤖",
+    "default_title": "ChatAI🧠",
     "default_panel": "sidebar.html",
     "default_icon": "icons/icon48.png",
     "open_at_install": false

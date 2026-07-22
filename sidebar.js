@@ -250,32 +250,159 @@ function escapeHtml(s) {
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
+
+
+
 /* ============ Syntax Highlighting & Code Block Enhancements ============ */
+
+function escapeRegExp(string) {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+function openCodeEditor(block, pre, lang) {
+  const modal = document.createElement('div');
+  modal.className = 'modal active code-editor-modal';
+  modal.innerHTML = `
+  <div class="modal-content" style="max-width: 800px; height: 80vh;">
+  <div class="modal-header">
+  <h3>Edit Code (${lang})</h3>
+  <button class="modal-close-btn close-editor">✕</button>
+  </div>
+  <div class="modal-body" style="flex: 1; display: flex; flex-direction: column; padding: 16px; overflow: hidden;">
+  <textarea class="code-editor-textarea" style="flex: 1; width: 100%; background: var(--bg-surface); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 13px; resize: none; line-height: 1.5;">${escapeHtml(block.innerText)}</textarea>
+  </div>
+  <div class="modal-footer">
+  <button class="action-btn cancel-editor">Cancel</button>
+  <button class="action-btn save-editor" style="background: var(--accent); color: var(--bg); border-color: var(--accent);">Save & Apply</button>
+  </div>
+  </div>
+  `;
+  document.body.appendChild(modal);
+
+  const close = () => modal.remove();
+  modal.querySelector('.close-editor').addEventListener('click', close);
+  modal.querySelector('.cancel-editor').addEventListener('click', close);
+  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
+
+  modal.querySelector('.save-editor').addEventListener('click', () => {
+    const newText = modal.querySelector('.code-editor-textarea').value;
+    const oldText = block.innerText;
+
+    // Update UI
+    block.innerText = newText;
+    if (typeof hljs !== 'undefined') {
+      block.classList.remove('hljs');
+      hljs.highlightElement(block);
+    }
+
+    // Update underlying markdown message
+    const msgWrapper = pre.closest('.message-wrapper');
+    if (msgWrapper) {
+      const msgId = msgWrapper.dataset.msgId;
+      const conv = conversations[activeConvId];
+      const msg = conv.messages.find(m => m.id === msgId);
+      if (msg) {
+        const regex = new RegExp(`(\`\`\`${lang}\\s*)${escapeRegExp(oldText)}(\\s*\`\`\`)`, 'm');
+        if (regex.test(msg.text)) {
+          msg.text = msg.text.replace(regex, `$1${newText}$2`);
+        } else {
+          msg.text = msg.text.replace(oldText, newText);
+        }
+        saveConversations();
+        toast("Code updated", "success", 1500);
+      }
+    }
+    close();
+  });
+}
+
 function enhanceCodeBlocks(container) {
-  if (typeof hljs === 'undefined') return;
   const codeBlocks = container.querySelectorAll('pre code');
   codeBlocks.forEach(block => {
     const pre = block.parentElement;
     const classes = block.className.split(' ');
     const langClass = classes.find(c => c.startsWith('language-'));
-    if (langClass) {
-      pre.setAttribute('data-lang', langClass.replace('language-', ''));
-    } else {
-      pre.setAttribute('data-lang', 'text');
-    }
-    if (!pre.querySelector('.copy-code-btn')) {
-      const btn = document.createElement('button');
-      btn.className = 'copy-code-btn';
-      btn.textContent = '📋 Copy';
-      btn.addEventListener('click', () => {
+    const lang = langClass ? langClass.replace('language-', '') : 'text';
+    pre.setAttribute('data-lang', lang);
+
+    if (!pre.querySelector('.code-block-actions')) {
+      const actions = document.createElement('div');
+      actions.className = 'code-block-actions';
+
+      // 1. Copy
+      const copyBtn = document.createElement('button');
+      copyBtn.className = 'code-action-btn';
+      copyBtn.textContent = '📋 Copy';
+      copyBtn.addEventListener('click', () => {
         navigator.clipboard.writeText(block.innerText).then(() => {
-          btn.textContent = "✅ Copied!";
-          setTimeout(() => btn.textContent = "📋 Copy", 1500);
+          copyBtn.textContent = "✅ Copied!";
+          setTimeout(() => copyBtn.textContent = "📋 Copy", 1500);
         });
       });
-      pre.prepend(btn);
+      actions.appendChild(copyBtn);
+
+      // 2. Edit
+      const editBtn = document.createElement('button');
+      editBtn.className = 'code-action-btn';
+      editBtn.textContent = '✏️ Edit';
+      editBtn.addEventListener('click', () => openCodeEditor(block, pre, lang));
+      actions.appendChild(editBtn);
+
+      // 3. Download
+      const downloadBtn = document.createElement('button');
+      downloadBtn.className = 'code-action-btn';
+      downloadBtn.textContent = '⬇️ Download';
+      downloadBtn.addEventListener('click', () => {
+        const blob = new Blob([block.innerText], { type: 'text/plain' });
+        const url = URL.createObjectURL(blob);
+        const a = document.createElement('a');
+        a.href = url;
+        a.download = `code.${lang === 'text' ? 'txt' : lang}`;
+        a.click();
+        URL.revokeObjectURL(url);
+      });
+      actions.appendChild(downloadBtn);
+
+      // 4. Preview (HTML/SVG only)
+      // 4. Preview (HTML/SVG only)
+      if (['html', 'htm', 'svg'].includes(lang.toLowerCase())) {
+        const previewBtn = document.createElement('button');
+        previewBtn.className = 'code-action-btn';
+        previewBtn.textContent = '👁️ Preview';
+
+        previewBtn.addEventListener('click', async () => {
+          const htmlContent = block.innerText;
+
+          // Generate a unique ID for this specific preview session
+          const previewId = 'preview_' + Date.now();
+
+          try {
+            // 1. Store HTML in extension local storage (shared across all extension contexts)
+            await browser.storage.local.set({
+              [`preview_data_${previewId}`]: htmlContent,
+              [`preview_time_${previewId}`]: Date.now()
+            });
+
+            // 2. Open the dedicated preview page, passing the unique ID in the URL
+            const previewUrl = browser.runtime.getURL(`preview.html?id=${previewId}`);
+            if (typeof browser !== 'undefined' && browser.tabs) {
+              browser.tabs.create({ url: previewUrl });
+            } else {
+              window.open(previewUrl, '_blank');
+            }
+          } catch (e) {
+            console.error("Preview storage error:", e);
+            toast("Preview failed: Content too large or storage error", "error");
+          }
+        });
+
+        actions.appendChild(previewBtn);
+      }
+
+      pre.prepend(actions);
     }
-    if (!block.classList.contains('hljs')) {
+
+    if (!block.classList.contains('hljs') && typeof hljs !== 'undefined') {
       hljs.highlightElement(block);
     }
   });
@@ -401,28 +528,29 @@ function renderMessages() {
   setTimeout(autoScrollChat, 50);
 }
 
-function appendMessage(text, sender, images = [], save = true, existingId = null, timestamp = null, thinking = null) {
+
+function appendMessage(text, sender, images = [], save = true, existingId = null, timestamp = null, thinking = null, ragSources = null) {
   const wrapper = document.createElement("div");
   wrapper.classList.add("message-wrapper", sender);
   const msgId = existingId || "msg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
   wrapper.dataset.msgId = msgId;
-  
+
   const msg = document.createElement("div");
   msg.classList.add("message");
-  
+
   if (thinking && cfgShowThinking.checked) {
     const thinkBlock = document.createElement("details");
     thinkBlock.className = "thinking-block";
     thinkBlock.innerHTML = `<summary>💭 Thinking process</summary><div>${parseMarkdownToHtml(thinking)}</div>`;
     msg.appendChild(thinkBlock);
   }
-  
+
   const contentDiv = document.createElement("div");
   contentDiv.className = "message-content";
   contentDiv.innerHTML = sender === "user" ? escapeHtml(text).replace(/\n/g, "<br>") : parseMarkdownToHtml(text);
   msg.appendChild(contentDiv);
   wrapper.appendChild(msg);
-  
+
   if (images && images.length > 0) {
     images.forEach(imgBase64 => {
       const imgEl = document.createElement("img");
@@ -434,19 +562,34 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
       msg.appendChild(imgEl);
     });
   }
-  
+
+  // Render RAG Sources if they exist
+  if (ragSources && ragSources.length > 0) {
+    const sourcesDiv = document.createElement("div");
+    sourcesDiv.className = "rag-sources";
+    sourcesDiv.innerHTML = `<span class="rag-sources-title">📚 Sources:</span>`;
+    const uniqueSources = [...new Set(ragSources)];
+    uniqueSources.forEach(src => {
+      const pill = document.createElement("span");
+      pill.className = "rag-source-pill";
+      pill.textContent = src;
+      sourcesDiv.appendChild(pill);
+    });
+    wrapper.appendChild(sourcesDiv);
+  }
+
   const time = document.createElement("div");
   time.className = "message-time";
   time.textContent = new Date(timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   wrapper.appendChild(time);
-  
+
   const actions = document.createElement("div");
   actions.className = "bubble-actions";
   const copyBtn = mkBtn("📋 Copy", () => {
     navigator.clipboard.writeText(msg.innerText).then(() => toast("Copied!", "success", 1200));
   });
   actions.appendChild(copyBtn);
-  
+
   if (sender === "user") {
     actions.appendChild(mkBtn("✏️ Edit", () => editAndResend(msgId)));
   } else {
@@ -454,14 +597,22 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
     actions.appendChild(mkBtn("🔊 Read", () => speakText(text)));
   }
   wrapper.appendChild(actions);
+
   chatContainer.appendChild(wrapper);
-  
-  enhanceCodeBlocks(msg); // Apply syntax highlighting
+  enhanceCodeBlocks(msg);
   autoScrollChat();
-  
+
   if (save) {
     const conv = conversations[activeConvId];
-    conv.messages.push({ id: msgId, text, sender, images: images || [], ts: timestamp || Date.now(), thinking: thinking || null });
+    conv.messages.push({
+      id: msgId,
+      text,
+      sender,
+      images: images || [],
+      ts: timestamp || Date.now(),
+                       thinking: thinking || null,
+                       ragSources: ragSources || null
+    });
     if (sender === "user" && conv.messages.filter(m => m.sender === "user").length === 1) {
       conv.title = text.slice(0, 40) + (text.length > 40 ? "…" : "");
       chatTitle.textContent = conv.title;
@@ -904,10 +1055,22 @@ function cosineSimilarity(vecA, vecB) {
   return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
 }
 
-async function chunkText(text, chunkSize = 1000, overlap = 200) {
+function chunkTextBySentences(text, chunkSize = 1000, overlap = 200) {
+  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
   const chunks = [];
-  for (let i = 0; i < text.length; i += chunkSize - overlap) {
-    chunks.push(text.slice(i, i + chunkSize));
+  let currentChunk = "";
+
+  for (const sentence of sentences) {
+    if ((currentChunk + sentence).length > chunkSize && currentChunk.length > 0) {
+      chunks.push(currentChunk.trim());
+      const overlapText = currentChunk.slice(-overlap);
+      currentChunk = overlapText + sentence;
+    } else {
+      currentChunk += sentence;
+    }
+  }
+  if (currentChunk.trim().length > 0) {
+    chunks.push(currentChunk.trim());
   }
   return chunks;
 }
@@ -916,7 +1079,8 @@ async function indexContent(source, text) {
   const db = await openDB();
   const embeddingModel = cfgRagModel.value || "nomic-embed-text";
   const chunkSize = parseInt(cfgRagChunkSize.value) || 1000;
-  const chunks = await chunkText(text, chunkSize, 200);
+  //const chunks = await chunkText(text, chunkSize, 200);
+  const chunks = await chunkTextBySentences(text, chunkSize, 200);
   
   const embeddings = [];
   for (const chunk of chunks) {
@@ -943,23 +1107,29 @@ async function queryRAG(prompt) {
   const embeddingModel = cfgRagModel.value || "nomic-embed-text";
   const topK = parseInt(cfgRagTopk.value) || 3;
   const queryEmbedding = await getEmbedding(prompt, embeddingModel);
-  
   const tx = db.transaction(STORE_NAME, 'readonly');
   const store = tx.objectStore(STORE_NAME);
   const request = store.getAll();
-  
+
   return new Promise((resolve) => {
     request.onsuccess = () => {
       const allChunks = request.result;
-      if (allChunks.length === 0) { resolve(""); return; }
+      if (allChunks.length === 0) {
+        resolve({ context: "", sources: [] });
+        return;
+      }
+
       const scored = allChunks.map(chunk => ({
         ...chunk,
         score: cosineSimilarity(queryEmbedding, chunk.embedding)
       }));
       scored.sort((a, b) => b.score - a.score);
       const topChunks = scored.slice(0, topK);
+
       const context = topChunks.map(c => `[Source: ${c.source}]\n${c.text}`).join('\n\n---\n\n');
-      resolve(context);
+      const sources = topChunks.map(c => c.source);
+
+      resolve({ context, sources });
     };
   });
 }
@@ -1040,41 +1210,44 @@ async function askOllama(promptText, images = []) {
   const wrapper = appendMessage("", "assistant");
   const msgDiv = wrapper.querySelector(".message");
   msgDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
-  
+
   sendBtn.style.display = "none"; stopBtn.style.display = "inline-flex";
   isGenerating = true; currentAbortController = new AbortController();
-  
-  let accumulated = ""; let thinkingContent = "";
+
+  let accumulated = "";
+  let thinkingContent = "";
   let finalPrompt = promptText;
-  
+  let ragSources = []; // <--- THIS FIXES THE ERROR
+
   if (ragEnabled) {
     try {
       toast("Searching knowledge base...", "info", 1500);
-      const ragContext = await queryRAG(promptText);
-      if (ragContext) {
-        finalPrompt = `Use the following context to answer the question. If the answer is not in the context, say you don't know.\n\nContext:\n${ragContext}\n\nQuestion: ${promptText}`;
+      const { context, sources } = await queryRAG(promptText);
+      if (context) {
+        ragSources = sources;
+        finalPrompt = `Use the following context to answer the question. If the answer is not in the context, say you don't know.\n\nContext:\n${context}\n\nQuestion: ${promptText}`;
       }
     } catch (e) {
       console.error("RAG error", e);
       toast("RAG search failed: " + e.message, "error");
     }
   }
-  
+
   const baseUrl = cfgUrl.value.trim().replace(/\/$/, "");
   const isOpenAIMode = cfgOpenaiMode.checked;
   const apiKey = cfgApiKey.value;
   const conv = conversations[activeConvId];
+
   const messages = [];
-  
   if (cfgSystemPrompt.value.trim()) messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
+
   const history = conv.messages.slice(0, -1).slice(-10);
   history.forEach(m => {
     if (m.sender === "user" || m.sender === "assistant") messages.push({ role: m.sender, content: m.text });
   });
   messages.push({ role: "user", content: finalPrompt, images: images.length ? images : undefined });
-  
+
   let fetchUrl, fetchBody, fetchHeaders = { "Content-Type": "application/json" };
-  
   if (isOpenAIMode) {
     fetchUrl = `${baseUrl}/v1/chat/completions`;
     if (apiKey) fetchHeaders["Authorization"] = `Bearer ${apiKey}`;
@@ -1083,22 +1256,20 @@ async function askOllama(promptText, images = []) {
     fetchUrl = `${baseUrl}/api/chat`;
     fetchBody = { model: cfgModel.value || "gemma3", messages: messages, stream: cfgStream.checked, options: { temperature: parseFloat(cfgTemp.value), num_ctx: parseInt(cfgCtx.value) } };
   }
-  
+
   try {
     const res = await fetch(fetchUrl, { method: "POST", headers: fetchHeaders, signal: currentAbortController.signal, body: JSON.stringify(fetchBody) });
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
-    
+
     if (cfgStream.checked) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
-      
       while (true) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
         const lines = buffer.split("\n"); buffer = lines.pop();
-        
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
@@ -1126,11 +1297,35 @@ async function askOllama(promptText, images = []) {
       else { accumulated = data.message?.content || ""; thinkingContent = data.message?.thinking || ""; }
       updateStreamingMessage(msgDiv, accumulated, thinkingContent, true);
     }
-    
-    conv.messages[conv.messages.length - 1] = { id: wrapper.dataset.msgId, text: accumulated, sender: "assistant", images: [], ts: Date.now(), thinking: thinkingContent || null };
+
+    // Save sources to history
+    conv.messages[conv.messages.length - 1] = {
+      id: wrapper.dataset.msgId,
+      text: accumulated,
+      sender: "assistant",
+      images: [],
+      ts: Date.now(),
+      thinking: thinkingContent || null,
+      ragSources: ragSources.length > 0 ? ragSources : null
+    };
     saveConversations(); updateTokenCounter();
+
     if (cfgAutoTts.checked && accumulated) speakText(accumulated);
-    
+
+    // Render sources UI for the current streaming message
+    if (ragSources.length > 0) {
+      const sourcesDiv = document.createElement("div");
+      sourcesDiv.className = "rag-sources";
+      sourcesDiv.innerHTML = `<span class="rag-sources-title">📚 Sources:</span>`;
+      const uniqueSources = [...new Set(ragSources)];
+      uniqueSources.forEach(src => {
+        const pill = document.createElement("span");
+        pill.className = "rag-source-pill";
+        pill.textContent = src;
+        sourcesDiv.appendChild(pill);
+      });
+      wrapper.appendChild(sourcesDiv);
+    }
   } catch (err) {
     if (err.name === "AbortError") {
       msgDiv.innerHTML = parseMarkdownToHtml(accumulated + "\n\n*[stopped]*");
@@ -1145,6 +1340,8 @@ async function askOllama(promptText, images = []) {
     isGenerating = false; currentAbortController = null; currentImages = [];
   }
 }
+
+
 
 function updateStreamingMessage(msgDiv, content, thinking, final = false) {
   let html = "";

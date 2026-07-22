@@ -986,3 +986,62 @@ body.font-lg { font-size: 16px; }
 /* Settings Tab Content Visibility */
 .settings-tab-content { display: none; animation: fadeIn 0.2s ease; }
 .settings-tab-content.active { display: block; }
+
+/* ========== CODE BLOCK ACTIONS ========== */
+.code-block-actions {
+  position: absolute;
+  top: 8px;
+  right: 8px;
+  display: flex;
+  gap: 6px;
+  z-index: 10;
+}
+.code-action-btn {
+  background: var(--border-strong);
+  color: var(--fg);
+  border: none;
+  border-radius: 6px;
+  padding: 4px 10px;
+  font-size: 10px;
+  cursor: pointer;
+  opacity: 0.8;
+  transition: all var(--transition);
+}
+.code-action-btn:hover {
+  opacity: 1;
+  background: var(--accent);
+  color: var(--bg);
+}
+/* Override old copy button positioning */
+.copy-code-btn {
+  position: static;
+}
+
+/* ========== RAG SOURCES / CITATIONS ========== */
+.rag-sources {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 6px;
+  margin-top: 8px;
+  padding: 8px 12px;
+  background: var(--accent-soft);
+  border-radius: var(--radius-sm);
+  border: 1px solid var(--border);
+  font-size: 11px;
+  align-items: center;
+}
+.rag-sources-title {
+  color: var(--fg-muted);
+  font-weight: 600;
+  margin-right: 4px;
+  display: flex;
+  align-items: center;
+}
+.rag-source-pill {
+  background: var(--bg-surface);
+  color: var(--accent);
+  padding: 2px 8px;
+  border-radius: 10px;
+  border: 1px solid var(--border);
+  font-weight: 500;
+}
