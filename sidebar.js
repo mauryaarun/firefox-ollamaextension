@@ -1284,7 +1284,9 @@ async function askOllama(promptText, images = []) {
     fetchBody = { model: cfgModel.value || "gpt-3.5-turbo", messages: messages, temperature: parseFloat(cfgTemp.value), stream: cfgStream.checked };
   } else {
     fetchUrl = `${baseUrl}/api/chat`;
-    fetchBody = { model: cfgModel.value || "gemma3", messages: messages, stream: cfgStream.checked, options: { temperature: parseFloat(cfgTemp.value), num_ctx: parseInt(cfgCtx.value) } };
+
+
+    fetchBody = { model: cfgModel.value || "gemma4", messages: messages, stream: cfgStream.checked, options: { temperature: parseFloat(cfgTemp.value), num_ctx: parseInt(cfgCtx.value) } };
   }
 
   try {

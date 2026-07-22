@@ -1045,3 +1045,45 @@ body.font-lg { font-size: 16px; }
   border: 1px solid var(--border);
   font-weight: 500;
 }
+
+/* ========== CONNECTION HELP BOX ========== */
+.connection-help {
+  margin-top: 10px;
+  padding: 10px 12px;
+  background: rgba(245, 200, 107, 0.08);
+  border: 1px solid var(--warning);
+  border-radius: var(--radius-sm);
+  font-size: 11px;
+  color: var(--fg);
+  line-height: 1.5;
+}
+.connection-help strong {
+  color: var(--warning);
+  display: block;
+  margin-bottom: 4px;
+  font-size: 11px;
+}
+.connection-help code {
+  display: block;
+  background: var(--bg-surface);
+  padding: 6px 8px;
+  border-radius: 4px;
+  font-family: "SF Mono", Monaco, Consolas, monospace;
+  color: var(--accent);
+  margin: 6px 0;
+  word-break: break-all;
+  border: 1px solid var(--border);
+}
+.connection-help small {
+  display: block;
+  color: var(--fg-muted);
+  margin-top: 4px;
+  font-size: 10px;
+}
+.connection-help small code {
+  display: inline;
+  background: transparent;
+  border: none;
+  padding: 0;
+  color: var(--fg-muted);
+}

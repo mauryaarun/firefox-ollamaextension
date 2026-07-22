@@ -133,6 +133,13 @@
                                 <input type="text" id="cfg-url" value="http://localhost:11434" placeholder="http://localhost:11434">
                                 <button id="btn-fetch-models" class="action-btn">↻</button>
                             </div>
+
+                            <div class="connection-help">
+                                <strong>⚠️ Firefox Connection Fix:</strong> If Ollama rejects requests, you must allow the extension origin.
+                                <br>Run this in your terminal, then restart Ollama:
+                                <code>OLLAMA_ORIGINS="moz-extension://*" OLLAMA_HOST="0.0.0.0:11434" ollama serve</code>
+                                <small>(Windows CMD: <code>set OLLAMA_ORIGINS=moz-extension://* && set OLLAMA_HOST=0.0.0.0:11434 && ollama serve</code>)</small>
+                            </div>
                         </div>
                         <div class="setting-group">
                             <label>Model</label>
