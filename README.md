@@ -1,3 +1,4 @@
+---
 ##ChatAI🧠 Assistant: Local AI Multimodal Sidebar
 **Version:** 3.2.5  
 **Description:** A modern, privacy-focused Firefox sidebar extension that brings local Large Language Models (LLMs), vision, voice, and Retrieval-Augmented Generation (RAG) directly to your browser.
