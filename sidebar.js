@@ -1,14 +1,10 @@
 /* ============ PDF.js Setup (Local) ============ */
 if (typeof pdfjsLib !== 'undefined') {
-  pdfjsLib.GlobalWorkerOptions.workerSrc = browser.runtime.getURL('lib/pdfjs/pdf.worker.min.js');
+    pdfjsLib.GlobalWorkerOptions.workerSrc = browser.runtime.getURL('lib/pdfjs/pdf.worker.min.js');
 }
 
-/* ============ DOM refs (FIXED: Removed trailing spaces) ============ */
-const getEl = (id) => {
-  const el = document.getElementById(id);
-  if (!el) console.warn(`[DOM] Element with ID "${id}" not found.`);
-  return el;
-};
+/* ============ DOM refs (FIXED: No trailing spaces) ============ */
+const getEl = (id) => document.getElementById(id);
 
 const chatContainer     = getEl("chat-container");
 const userInput         = getEl("user-input");
@@ -34,7 +30,7 @@ const themeChips        = document.querySelectorAll(".theme-chip");
 const statusDot         = getEl("status-indicator");
 const statusText        = getEl("status-text");
 const tokenCounter      = getEl("token-counter");
-const messageCount      = getEl("message-count"); // Added missing ref
+const messageCount      = getEl("message-count");
 const newConvBtn        = getEl("new-conversation-btn");
 const exportBtn         = getEl("export-btn");
 const exportMdBtn       = getEl("export-md-btn");
@@ -104,383 +100,303 @@ const STORE_NAME = 'chunks';
 const DOCS_STORE = 'documents';
 
 const predefinedPrompts = {
-  "default": "",
-  "coder": "You are an expert software engineer. Provide clean, efficient, and well-documented code. Explain your reasoning.",
-  "translator": "You are a professional translator. Translate the following text accurately, preserving the tone and context.",
-  "creative": "You are a creative writing assistant. Help brainstorm ideas, write stories, and improve prose.",
-  "summarizer": "You are a summarization expert. Provide concise, accurate summaries of the provided text.",
-  "tutor": "You are a patient and knowledgeable tutor. Explain concepts clearly with examples."
+    "default": "",
+    "coder": "You are an expert software engineer. Provide clean, efficient, and well-documented code. Explain your reasoning.",
+    "translator": "You are a professional translator. Translate the following text accurately, preserving the tone and context.",
+    "creative": "You are a creative writing assistant. Help brainstorm ideas, write stories, and improve prose.",
+    "summarizer": "You are a summarization expert. Provide concise, accurate summaries of the provided text.",
+    "tutor": "You are a patient and knowledgeable tutor. Explain concepts clearly with examples."
 };
 
 /* ============ Toast System ============ */
 function toast(message, type = "info", duration = 3000) {
-  if (!toastContainer) return;
-  const t = document.createElement("div");
-  t.className = `toast ${type}`;
-  t.textContent = message;
-  toastContainer.appendChild(t);
-  setTimeout(() => {
-    t.style.animation = "toastIn 0.3s ease reverse";
-    setTimeout(() => t.remove(), 300);
-  }, duration);
+    if (!toastContainer) return;
+    const t = document.createElement("div");
+    t.className = `toast ${type}`;
+    t.textContent = message;
+    toastContainer.appendChild(t);
+    setTimeout(() => {
+        t.style.animation = "toastIn 0.3s ease reverse";
+        setTimeout(() => t.remove(), 300);
+    }, duration);
 }
 
 /* ============ Settings Tabs ============ */
 settingsTabs.forEach(tab => {
-  tab.addEventListener("click", () => {
-    const targetTab = tab.dataset.tab;
-    settingsTabs.forEach(t => t.classList.remove("active"));
-    settingsTabContents.forEach(c => c.classList.remove("active"));
-    tab.classList.add("active");
-    const targetContent = document.querySelector(`[data-tab-content="${targetTab}"]`);
-    if (targetContent) targetContent.classList.add("active");
-  });
+    tab.addEventListener("click", () => {
+        const targetTab = tab.dataset.tab;
+        settingsTabs.forEach(t => t.classList.remove("active"));
+        settingsTabContents.forEach(c => c.classList.remove("active"));
+        tab.classList.add("active");
+        const targetContent = document.querySelector(`[data-tab-content="${targetTab}"]`);
+        if (targetContent) targetContent.classList.add("active");
+    });
 });
 
 /* ============ Init ============ */
 browser.storage.local.get([
-  "serverUrl", "selectedModel", "theme", "systemPrompt", "temperature", "contextLength",
-  "stream", "conversations", "activeConvId", "openaiMode", "apiKey", "showThinking",
-  "autoTts", "fontSize", "ragModel", "ragTopk", "ragChunkSize", "presetPrompt", "ragEnabled"
+    "serverUrl", "selectedModel", "theme", "systemPrompt", "temperature", "contextLength",
+    "stream", "conversations", "activeConvId", "openaiMode", "apiKey", "showThinking",
+    "autoTts", "fontSize", "ragModel", "ragTopk", "ragChunkSize", "presetPrompt", "ragEnabled"
 ]).then((res) => {
-  console.log("[Init] Loaded storage:", res);
-  
-  if (res.serverUrl) cfgUrl.value = res.serverUrl;
-  else cfgUrl.value = "http://localhost:11434"; // Default fallback
+    console.log("[Init] Storage loaded");
+    
+    if (res.serverUrl && cfgUrl) cfgUrl.value = res.serverUrl;
+    else if (cfgUrl) cfgUrl.value = "http://localhost:11434";
 
-  if (res.theme) { applyTheme(res.theme); setActiveThemeChip(res.theme); }
-  else { applyTheme("auto"); setActiveThemeChip("auto"); }
-  
-  if (res.systemPrompt) cfgSystemPrompt.value = res.systemPrompt;
-  if (res.temperature) { cfgTemp.value = res.temperature; if(tempVal) tempVal.textContent = res.temperature; }
-  if (res.contextLength) cfgCtx.value = res.contextLength;
-  if (typeof res.stream === "boolean") cfgStream.checked = res.stream;
-  if (res.openaiMode) { 
-    if(cfgOpenaiMode) cfgOpenaiMode.checked = res.openaiMode; 
-    if(apiKeyGroup) apiKeyGroup.style.display = "block"; 
-  }
-  if (res.apiKey) cfgApiKey.value = res.apiKey;
-  if (res.showThinking && cfgShowThinking) cfgShowThinking.checked = res.showThinking;
-  if (res.autoTts && cfgAutoTts) cfgAutoTts.checked = res.autoTts;
-  if (res.ragModel && cfgRagModel) cfgRagModel.value = res.ragModel;
-  if (res.ragTopk && cfgRagTopk) cfgRagTopk.value = res.ragTopk;
-  if (res.ragChunkSize && cfgRagChunkSize) cfgRagChunkSize.value = res.ragChunkSize;
-  if (res.ragEnabled) { ragEnabled = res.ragEnabled; updateRagToggleUI(); }
-  if (res.presetPrompt && cfgPresetPrompt) cfgPresetPrompt.value = res.presetPrompt;
-  
-  if (res.fontSize) {
-    document.body.classList.add(`font-${res.fontSize}`);
-    fontSizeBtns.forEach(b => b.classList.toggle("active", b.dataset.size === res.fontSize));
-  } else {
-    fontSizeBtns.forEach(b => b.classList.toggle("active", b.dataset.size === "14"));
-  }
+    if (res.theme) { applyTheme(res.theme); setActiveThemeChip(res.theme); }
+    else { applyTheme("auto"); setActiveThemeChip("auto"); }
 
-  conversations = res.conversations || {};
-  activeConvId = res.activeConvId || null;
-
-  if (res.selectedModel) {
-    if(currentModelTag) currentModelTag.innerText = res.selectedModel;
-    if(cfgModel) {
-      const opt = document.createElement("option");
-      opt.value = res.selectedModel; opt.textContent = res.selectedModel;
-      cfgModel.appendChild(opt); cfgModel.value = res.selectedModel;
+    if (res.systemPrompt && cfgSystemPrompt) cfgSystemPrompt.value = res.systemPrompt;
+    if (res.temperature && cfgTemp) { 
+        cfgTemp.value = res.temperature; 
+        if(tempVal) tempVal.textContent = res.temperature; 
     }
-  }
-
-  if (!activeConvId || !conversations[activeConvId]) {
-    createConversation(true);
-  } else {
-    renderHistoryList();
-    renderMessages();
-  }
-
-  // Fetch models after init
-  fetchOllamaModels();
-  checkServerStatus();
-  setInterval(checkServerStatus, 30000);
-
-  browser.storage.local.get("pendingPrompt").then(r => {
-    if (r.pendingPrompt) {
-      handleIncomingPrompt(r.pendingPrompt);
-      browser.storage.local.remove("pendingPrompt");
+    if (res.contextLength && cfgCtx) cfgCtx.value = res.contextLength;
+    if (typeof res.stream === "boolean" && cfgStream) cfgStream.checked = res.stream;
+    if (res.openaiMode) { 
+        if(cfgOpenaiMode) cfgOpenaiMode.checked = res.openaiMode; 
+        if(apiKeyGroup) apiKeyGroup.style.display = "block"; 
     }
-  });
+    if (res.apiKey && cfgApiKey) cfgApiKey.value = res.apiKey;
+    if (res.showThinking && cfgShowThinking) cfgShowThinking.checked = res.showThinking;
+    if (res.autoTts && cfgAutoTts) cfgAutoTts.checked = res.autoTts;
+    if (res.ragModel && cfgRagModel) cfgRagModel.value = res.ragModel;
+    if (res.ragTopk && cfgRagTopk) cfgRagTopk.value = res.ragTopk;
+    if (res.ragChunkSize && cfgRagChunkSize) cfgRagChunkSize.value = res.ragChunkSize;
+    if (res.ragEnabled) { ragEnabled = res.ragEnabled; updateRagToggleUI(); }
+    if (res.presetPrompt && cfgPresetPrompt) cfgPresetPrompt.value = res.presetPrompt;
 
-  initVoiceRecognition();
-  loadRagDocuments();
+    if (res.fontSize) {
+        document.body.classList.add(`font-${res.fontSize}`);
+        fontSizeBtns.forEach(b => b.classList.toggle("active", b.dataset.size === res.fontSize));
+    }
+
+    conversations = res.conversations || {};
+    activeConvId = res.activeConvId || null;
+
+    if (res.selectedModel && cfgModel) {
+        if(currentModelTag) currentModelTag.innerText = res.selectedModel;
+        const opt = document.createElement("option");
+        opt.value = res.selectedModel; opt.textContent = res.selectedModel;
+        cfgModel.appendChild(opt); cfgModel.value = res.selectedModel;
+    }
+
+    if (!activeConvId || !conversations[activeConvId]) {
+        createConversation(true);
+    } else {
+        renderHistoryList();
+        renderMessages();
+    }
+
+    fetchOllamaModels();
+    checkServerStatus();
+    setInterval(checkServerStatus, 30000);
+
+    // Check for pending prompts from context menu
+    browser.storage.local.get("pendingPrompt").then(r => {
+        if (r.pendingPrompt) {
+            handleIncomingPrompt(r.pendingPrompt);
+            browser.storage.local.remove("pendingPrompt");
+        }
+    });
+
+    initVoiceRecognition();
+    loadRagDocuments();
 });
 
 /* ============ Theme Management ============ */
 function applyTheme(theme) {
-  if (theme === "auto") {
-    const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
-    document.body.setAttribute("data-theme", prefersDark ? "dark" : "light");
-  } else {
-    document.body.setAttribute("data-theme", theme);
-  }
+    if (theme === "auto") {
+        const prefersDark = window.matchMedia("(prefers-color-scheme: dark)").matches;
+        document.body.setAttribute("data-theme", prefersDark ? "dark" : "light");
+    } else {
+        document.body.setAttribute("data-theme", theme);
+    }
 }
 function setActiveThemeChip(theme) {
-  themeChips.forEach(c => c.classList.toggle("active", c.dataset.theme === theme));
+    themeChips.forEach(c => c.classList.toggle("active", c.dataset.theme === theme));
 }
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
-  const active = document.querySelector(".theme-chip.active");
-  if (active && active.dataset.theme === "auto") applyTheme("auto");
+    const active = document.querySelector(".theme-chip.active");
+    if (active && active.dataset.theme === "auto") applyTheme("auto");
 });
 themeChips.forEach(chip => {
-  chip.addEventListener("click", () => {
-    const t = chip.dataset.theme;
-    applyTheme(t);
-    setActiveThemeChip(t);
-    browser.storage.local.set({ theme: t });
-  });
+    chip.addEventListener("click", () => {
+        const t = chip.dataset.theme;
+        applyTheme(t);
+        setActiveThemeChip(t);
+        browser.storage.local.set({ theme: t });
+    });
 });
 
 /* ============ RAG Toggle ============ */
 if (ragToggleBtn) {
-  ragToggleBtn.addEventListener("click", () => {
-    ragEnabled = !ragEnabled;
-    browser.storage.local.set({ ragEnabled });
-    updateRagToggleUI();
-    toast(ragEnabled ? "RAG enabled" : "RAG disabled", "info", 1500);
-  });
+    ragToggleBtn.addEventListener("click", () => {
+        ragEnabled = !ragEnabled;
+        browser.storage.local.set({ ragEnabled });
+        updateRagToggleUI();
+        toast(ragEnabled ? "RAG enabled" : "RAG disabled", "info", 1500);
+    });
 }
 function updateRagToggleUI() {
-  if (!ragToggleBtn || !ragStatus) return;
-  ragToggleBtn.classList.toggle("active", ragEnabled);
-  ragToggleBtn.title = ragEnabled ? "RAG Enabled (click to disable)" : "RAG Disabled (click to enable)";
-  ragStatus.style.display = ragEnabled ? "inline" : "none";
+    if (!ragToggleBtn || !ragStatus) return;
+    ragToggleBtn.classList.toggle("active", ragEnabled);
+    ragToggleBtn.title = ragEnabled ? "RAG Enabled (click to disable)" : "RAG Disabled (click to enable)";
+    ragStatus.style.display = ragEnabled ? "inline" : "none";
 }
 
 /* ============ Markdown Parser ============ */
 function parseMarkdownToHtml(md) {
-  if (typeof marked === 'undefined') {
-    return md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
-  }
-  marked.setOptions({ breaks: true, gfm: true });
-  let html = marked.parse(md);
-  if (typeof DOMPurify !== 'undefined') {
-    html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'class'] });
-  }
-  return html;
+    if (typeof marked === 'undefined') {
+        return md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
+    }
+    marked.setOptions({ breaks: true, gfm: true });
+    let html = marked.parse(md);
+    if (typeof DOMPurify !== 'undefined') {
+        html = DOMPurify.sanitize(html, { ADD_ATTR: ['target', 'rel', 'class'] });
+    }
+    return html;
 }
 function escapeHtml(s) {
-  if (!s) return "";
-  return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
+    if (!s) return "";
+    return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /* ============ Code Block Enhancements ============ */
-function escapeRegExp(string) {
-  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
-}
-
-function openCodeEditor(block, pre, lang) {
-  const originalText = block.innerText;
-  const newText = prompt(`Edit Code (${lang})`, originalText);
-  if (newText === null || newText === originalText) return;
-  
-  block.innerText = newText;
-  if (typeof hljs !== 'undefined') {
-    block.classList.remove('hljs');
-    hljs.highlightElement(block);
-  }
-  
-  const msgWrapper = pre.closest('.message-wrapper');
-  if (msgWrapper) {
-    const msgId = msgWrapper.dataset.msgId;
-    const conv = conversations[activeConvId];
-    const msg = conv.messages.find(m => m.id === msgId);
-    if (msg) {
-      const regex = new RegExp(`(\`\`\`${lang}\\s*)${escapeRegExp(originalText)}(\\s*\`\`\`)`, 'm');
-      if (regex.test(msg.text)) {
-        msg.text = msg.text.replace(regex, `$1${newText}$2`);
-      } else {
-        msg.text = msg.text.replace(originalText, newText);
-      }
-      saveConversations();
-      toast("Code updated", "success", 1500);
-    }
-  }
-}
-
 function enhanceCodeBlocks(container) {
-  const codeBlocks = container.querySelectorAll('pre code');
-  codeBlocks.forEach(block => {
-    const pre = block.parentElement;
-    const classes = block.className.split(' ');
-    const langClass = classes.find(c => c.startsWith('language-'));
-    const lang = langClass ? langClass.replace('language-', '') : 'text';
-    pre.setAttribute('data-lang', lang);
-    
-    if (!pre.querySelector('.code-block-actions')) {
-      const actions = document.createElement('div');
-      actions.className = 'code-block-actions';
-      
-      const copyBtn = document.createElement('button');
-      copyBtn.className = 'code-action-btn';
-      copyBtn.textContent = '📋 Copy';
-      copyBtn.addEventListener('click', () => {
-        navigator.clipboard.writeText(block.innerText).then(() => {
-          copyBtn.textContent = "✅ Copied!";
-          setTimeout(() => copyBtn.textContent = "📋 Copy", 1500);
-        });
-      });
-      actions.appendChild(copyBtn);
-      
-      const editBtn = document.createElement('button');
-      editBtn.className = 'code-action-btn';
-      editBtn.textContent = '✏️ Edit';
-      editBtn.addEventListener('click', () => openCodeEditor(block, pre, lang));
-      actions.appendChild(editBtn);
-      
-      const downloadBtn = document.createElement('button');
-      downloadBtn.className = 'code-action-btn';
-      downloadBtn.textContent = '⬇️ Download';
-      downloadBtn.addEventListener('click', () => {
-        const blob = new Blob([block.innerText], { type: 'text/plain' });
-        const url = URL.createObjectURL(blob);
-        const a = document.createElement('a');
-        a.href = url;
-        a.download = `code.${lang === 'text' ? 'txt' : lang}`;
-        a.click();
-        URL.revokeObjectURL(url);
-      });
-      actions.appendChild(downloadBtn);
-      
-      if (['html', 'htm', 'svg'].includes(lang.toLowerCase())) {
-        const previewBtn = document.createElement('button');
-        previewBtn.className = 'code-action-btn';
-        previewBtn.textContent = '👁️ Preview';
-        previewBtn.addEventListener('click', async () => {
-          const htmlContent = block.innerText;
-          const previewId = 'preview_' + Date.now();
-          try {
-            await browser.storage.local.set({
-              [`preview_data_${previewId}`]: htmlContent,
-              [`preview_time_${previewId}`]: Date.now()
+    const codeBlocks = container.querySelectorAll('pre code');
+    codeBlocks.forEach(block => {
+        const pre = block.parentElement;
+        const classes = block.className.split(' ');
+        const langClass = classes.find(c => c.startsWith('language-'));
+        const lang = langClass ? langClass.replace('language-', '') : 'text';
+        pre.setAttribute('data-lang', lang);
+
+        if (!pre.querySelector('.code-block-actions')) {
+            const actions = document.createElement('div');
+            actions.className = 'code-block-actions';
+
+            const copyBtn = document.createElement('button');
+            copyBtn.className = 'code-action-btn';
+            copyBtn.textContent = '📋 Copy';
+            copyBtn.addEventListener('click', () => {
+                navigator.clipboard.writeText(block.innerText).then(() => {
+                    copyBtn.textContent = "✅ Copied!";
+                    setTimeout(() => copyBtn.textContent = "📋 Copy", 1500);
+                });
             });
-            const previewUrl = browser.runtime.getURL(`preview.html?id=${previewId}`);
-            if (typeof browser !== 'undefined' && browser.tabs) {
-              browser.tabs.create({ url: previewUrl });
-            } else {
-              window.open(previewUrl, '_blank');
-            }
-          } catch (e) {
-            console.error("Preview storage error:", e);
-            toast("Preview failed: Content too large", "error");
-          }
-        });
-        actions.appendChild(previewBtn);
-      }
-      pre.prepend(actions);
-    }
-    if (!block.classList.contains('hljs') && typeof hljs !== 'undefined') {
-      hljs.highlightElement(block);
-    }
-  });
+            actions.appendChild(copyBtn);
+            pre.prepend(actions);
+        }
+        if (!block.classList.contains('hljs') && typeof hljs !== 'undefined') {
+            hljs.highlightElement(block);
+        }
+    });
 }
 
 /* ============ Auto-Scroll ============ */
 function autoScrollChat() {
-  if (!chatContainer) return;
-  const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
-  if (isNearBottom) chatContainer.scrollTop = chatContainer.scrollHeight;
+    if (!chatContainer) return;
+    const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
+    if (isNearBottom) chatContainer.scrollTop = chatContainer.scrollHeight;
 }
 
 /* ============ Conversation Management ============ */
 function createConversation(switchTo = true) {
-  const id = "conv_" + Date.now();
-  conversations[id] = { id, title: "New Chat", messages: [], createdAt: Date.now(), pinned: false };
-  if (switchTo) activeConvId = id;
-  saveConversations();
-  renderHistoryList();
-  renderMessages();
-  toast("New conversation created");
+    const id = "conv_" + Date.now();
+    conversations[id] = { id, title: "New Chat", messages: [], createdAt: Date.now(), pinned: false };
+    if (switchTo) activeConvId = id;
+    saveConversations();
+    renderHistoryList();
+    renderMessages();
+    toast("New conversation created");
 }
 
 function switchConversation(id) {
-  if (isGenerating) return;
-  activeConvId = id;
-  saveConversations();
-  renderHistoryList();
-  renderMessages();
+    if (isGenerating) return;
+    activeConvId = id;
+    saveConversations();
+    renderHistoryList();
+    renderMessages();
 }
 
 function renameConversation(id, e) {
-  if (e) e.stopPropagation();
-  const conv = conversations[id];
-  const newName = prompt("Rename conversation:", conv.title);
-  if (newName && newName.trim()) {
-    conv.title = newName.trim();
-    saveConversations();
-    renderHistoryList();
-    if (id === activeConvId && chatTitle) chatTitle.textContent = conv.title;
-    toast("Conversation renamed", "success");
-  }
+    if (e) e.stopPropagation();
+    const conv = conversations[id];
+    const newName = prompt("Rename conversation:", conv.title);
+    if (newName && newName.trim()) {
+        conv.title = newName.trim();
+        saveConversations();
+        renderHistoryList();
+        if (id === activeConvId && chatTitle) chatTitle.textContent = conv.title;
+        toast("Conversation renamed", "success");
+    }
 }
 
 function pinConversation(id, e) {
-  if (e) e.stopPropagation();
-  const conv = conversations[id];
-  conv.pinned = !conv.pinned;
-  saveConversations();
-  renderHistoryList();
-  toast(conv.pinned ? "Conversation pinned 📌" : "Unpinned");
+    if (e) e.stopPropagation();
+    const conv = conversations[id];
+    conv.pinned = !conv.pinned;
+    saveConversations();
+    renderHistoryList();
+    toast(conv.pinned ? "Conversation pinned 📌" : "Unpinned");
 }
 
 function deleteConversation(id, e) {
-  if (e) e.stopPropagation();
-  if (!confirm("Delete this conversation?")) return;
-  delete conversations[id];
-  if (activeConvId === id) {
-    const keys = Object.keys(conversations);
-    activeConvId = keys[0] || null;
-    if (!activeConvId) createConversation(true);
-    else { renderHistoryList(); renderMessages(); }
-  }
-  saveConversations();
-  renderHistoryList();
-  renderMessages();
-  toast("Conversation deleted", "warning");
+    if (e) e.stopPropagation();
+    if (!confirm("Delete this conversation?")) return;
+    delete conversations[id];
+    if (activeConvId === id) {
+        const keys = Object.keys(conversations);
+        activeConvId = keys[0] || null;
+        if (!activeConvId) createConversation(true);
+        else { renderHistoryList(); renderMessages(); }
+    }
+    saveConversations();
+    renderHistoryList();
+    renderMessages();
+    toast("Conversation deleted", "warning");
 }
 
 function saveConversations() { browser.storage.local.set({ conversations, activeConvId }); }
 
 function renderHistoryList() {
-  if (!historyList) return;
-  historyList.innerHTML = "";
-  const allConvs = Object.values(conversations).sort((a, b) => (b.pinned === a.pinned ? b.createdAt - a.createdAt : b.pinned ? 1 : -1));
-  const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
-  const filtered = allConvs.filter(c => {
-    if (!searchTerm) return true;
-    if (c.title.toLowerCase().includes(searchTerm)) return true;
-    return c.messages.some(m => m.text.toLowerCase().includes(searchTerm));
-  });
-  
-  if (filtered.length === 0) {
-    historyList.innerHTML = `<div style="text-align:center; padding:30px 20px; color:var(--fg-muted); font-size: 13px;">No conversations found.</div>`;
-    return;
-  }
-  
-  filtered.forEach(c => {
-    const item = document.createElement("div");
-    item.className = "history-item" + (c.id === activeConvId ? " active" : "");
-    item.innerHTML = `
+    if (!historyList) return;
+    historyList.innerHTML = "";
+    const allConvs = Object.values(conversations).sort((a, b) => (b.pinned === a.pinned ? b.createdAt - a.createdAt : b.pinned ? 1 : -1));
+    const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
+    const filtered = allConvs.filter(c => {
+        if (!searchTerm) return true;
+        if (c.title.toLowerCase().includes(searchTerm)) return true;
+        return c.messages.some(m => m.text.toLowerCase().includes(searchTerm));
+    });
+
+    if (filtered.length === 0) {
+        historyList.innerHTML = `<div style="text-align:center; padding:30px 20px; color:var(--fg-muted); font-size: 13px;">No conversations found.</div>`;
+        return;
+    }
+
+    filtered.forEach(c => {
+        const item = document.createElement("div");
+        item.className = "history-item" + (c.id === activeConvId ? " active" : "");
+        item.innerHTML = `
       <div class="history-item-title">${c.pinned ? '📌 ' : ''}${escapeHtml(c.title)}</div>
       <div class="history-item-actions">
         <button data-action="pin" title="${c.pinned ? 'Unpin' : 'Pin'}">${c.pinned ? '📌' : '📍'}</button>
         <button data-action="rename" title="Rename">✏️</button>
         <button data-action="delete" title="Delete">🗑️</button>
       </div>`;
-    item.addEventListener("click", (e) => {
-      if (e.target.closest('.history-item-actions')) return;
-      switchConversation(c.id);
-      if (historyModal) historyModal.classList.remove('active');
+        item.addEventListener("click", (e) => {
+            if (e.target.closest('.history-item-actions')) return;
+            switchConversation(c.id);
+            if (historyModal) historyModal.classList.remove('active');
+        });
+        item.querySelector('[data-action="pin"]').addEventListener("click", (e) => { e.stopPropagation(); pinConversation(c.id, e); });
+        item.querySelector('[data-action="rename"]').addEventListener("click", (e) => { e.stopPropagation(); renameConversation(c.id, e); });
+        item.querySelector('[data-action="delete"]').addEventListener("click", (e) => { e.stopPropagation(); deleteConversation(c.id, e); });
+        historyList.appendChild(item);
     });
-    item.querySelector('[data-action="pin"]').addEventListener("click", (e) => { e.stopPropagation(); pinConversation(c.id, e); });
-    item.querySelector('[data-action="rename"]').addEventListener("click", (e) => { e.stopPropagation(); renameConversation(c.id, e); });
-    item.querySelector('[data-action="delete"]').addEventListener("click", (e) => { e.stopPropagation(); deleteConversation(c.id, e); });
-    historyList.appendChild(item);
-  });
 }
 
 if (newConvBtn) newConvBtn.addEventListener("click", () => { createConversation(true); if (historyModal) historyModal.classList.remove('active'); });
@@ -491,226 +407,226 @@ if (searchInput) searchInput.addEventListener("input", renderHistoryList);
 
 /* ============ Rendering ============ */
 function renderMessages() {
-  if (!chatContainer) return;
-  chatContainer.innerHTML = "";
-  const conv = conversations[activeConvId];
-  if (!conv) return;
-  
-  if (chatTitle) chatTitle.textContent = conv.title;
-  if (messageCount) messageCount.textContent = `${conv.messages.length} messages`;
-  
-  if (conv.messages.length === 0) {
-    if (emptyState) {
-      const empty = emptyState.cloneNode(true);
-      empty.style.display = "flex";
-      chatContainer.appendChild(empty);
-      empty.querySelectorAll(".quick-btn").forEach(btn => {
-        btn.addEventListener("click", () => {
-          if(userInput) userInput.value = btn.dataset.prompt;
-          if(userInput) userInput.focus();
-          autoResizeTextarea();
-        });
-      });
+    if (!chatContainer) return;
+    chatContainer.innerHTML = "";
+    const conv = conversations[activeConvId];
+    if (!conv) return;
+
+    if (chatTitle) chatTitle.textContent = conv.title;
+    if (messageCount) messageCount.textContent = `${conv.messages.length} messages`;
+
+    if (conv.messages.length === 0) {
+        if (emptyState) {
+            const empty = emptyState.cloneNode(true);
+            empty.style.display = "flex";
+            chatContainer.appendChild(empty);
+            empty.querySelectorAll(".quick-btn").forEach(btn => {
+                btn.addEventListener("click", () => {
+                    if(userInput) userInput.value = btn.dataset.prompt;
+                    if(userInput) userInput.focus();
+                    autoResizeTextarea();
+                });
+            });
+        }
+        return;
     }
-    return;
-  }
-  
-  conv.messages.forEach(m => appendMessage(m.text, m.sender, m.images, false, m.id, m.ts, m.thinking, m.ragSources));
-  updateTokenCounter();
-  setTimeout(autoScrollChat, 50);
+
+    conv.messages.forEach(m => appendMessage(m.text, m.sender, m.images, false, m.id, m.ts, m.thinking, m.ragSources));
+    updateTokenCounter();
+    setTimeout(autoScrollChat, 50);
 }
 
 function appendMessage(text, sender, images = [], save = true, existingId = null, timestamp = null, thinking = null, ragSources = null) {
-  const wrapper = document.createElement("div");
-  wrapper.classList.add("message-wrapper", sender);
-  const msgId = existingId || "msg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
-  wrapper.dataset.msgId = msgId;
-  
-  const msg = document.createElement("div");
-  msg.classList.add("message");
-  
-  if (thinking && cfgShowThinking && cfgShowThinking.checked) {
-    const thinkBlock = document.createElement("details");
-    thinkBlock.className = "thinking-block";
-    thinkBlock.innerHTML = `<summary>💭 Thinking process</summary><div>${parseMarkdownToHtml(thinking)}</div>`;
-    msg.appendChild(thinkBlock);
-  }
-  
-  const contentDiv = document.createElement("div");
-  contentDiv.className = "message-content";
-  contentDiv.innerHTML = sender === "user" ? escapeHtml(text).replace(/\n/g, "<br>") : parseMarkdownToHtml(text);
-  msg.appendChild(contentDiv);
-  wrapper.appendChild(msg);
-  
-  if (images && images.length > 0) {
-    images.forEach(imgBase64 => {
-      const imgEl = document.createElement("img");
-      imgEl.src = `data:image/jpeg;base64,${imgBase64}`;
-      imgEl.classList.add("thumb-preview");
-      imgEl.style.maxWidth = "200px";
-      imgEl.style.marginTop = "6px";
-      imgEl.addEventListener("click", () => openImageModal(imgEl.src));
-      msg.appendChild(imgEl);
-    });
-  }
-  
-  if (ragSources && ragSources.length > 0) {
-    const sourcesDiv = document.createElement("div");
-    sourcesDiv.className = "rag-sources";
-    sourcesDiv.innerHTML = `<span class="rag-sources-title">📚 Sources:</span>`;
-    const uniqueSources = [...new Set(ragSources)];
-    uniqueSources.forEach(src => {
-      const pill = document.createElement("span");
-      pill.className = "rag-source-pill";
-      pill.textContent = src;
-      sourcesDiv.appendChild(pill);
-    });
-    wrapper.appendChild(sourcesDiv);
-  }
-  
-  const time = document.createElement("div");
-  time.className = "message-time";
-  time.textContent = new Date(timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
-  wrapper.appendChild(time);
-  
-  const actions = document.createElement("div");
-  actions.className = "bubble-actions";
-  const copyBtn = mkBtn("📋 Copy", () => {
-    navigator.clipboard.writeText(msg.innerText).then(() => toast("Copied!", "success", 1200));
-  });
-  actions.appendChild(copyBtn);
-  
-  if (sender === "user") {
-    actions.appendChild(mkBtn("✏️ Edit", () => editAndResend(msgId)));
-  } else {
-    actions.appendChild(mkBtn("🔄 Regen", () => regenerate(msgId)));
-    actions.appendChild(mkBtn("🔊 Read", () => speakText(text)));
-  }
-  
-  wrapper.appendChild(actions);
-  chatContainer.appendChild(wrapper);
-  enhanceCodeBlocks(msg);
-  autoScrollChat();
-  
-  if (save) {
-    const conv = conversations[activeConvId];
-    conv.messages.push({
-      id: msgId, text, sender,
-      images: images || [],
-      ts: timestamp || Date.now(),
-      thinking: thinking || null,
-      ragSources: ragSources || null
-    });
-    if (sender === "user" && conv.messages.filter(m => m.sender === "user").length === 1) {
-      conv.title = text.slice(0, 40) + (text.length > 40 ? "…" : "");
-      if (chatTitle) chatTitle.textContent = conv.title;
-      renderHistoryList();
+    const wrapper = document.createElement("div");
+    wrapper.classList.add("message-wrapper", sender);
+    const msgId = existingId || "msg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
+    wrapper.dataset.msgId = msgId;
+
+    const msg = document.createElement("div");
+    msg.classList.add("message");
+
+    if (thinking && cfgShowThinking && cfgShowThinking.checked) {
+        const thinkBlock = document.createElement("details");
+        thinkBlock.className = "thinking-block";
+        thinkBlock.innerHTML = `<summary>💭 Thinking process</summary><div>${parseMarkdownToHtml(thinking)}</div>`;
+        msg.appendChild(thinkBlock);
     }
-    saveConversations();
-    updateTokenCounter();
-  }
-  return wrapper;
+
+    const contentDiv = document.createElement("div");
+    contentDiv.className = "message-content";
+    contentDiv.innerHTML = sender === "user" ? escapeHtml(text).replace(/\n/g, "<br>") : parseMarkdownToHtml(text);
+    msg.appendChild(contentDiv);
+    wrapper.appendChild(msg);
+
+    if (images && images.length > 0) {
+        images.forEach(imgBase64 => {
+            const imgEl = document.createElement("img");
+            imgEl.src = `data:image/jpeg;base64,${imgBase64}`;
+            imgEl.classList.add("thumb-preview");
+            imgEl.style.maxWidth = "200px";
+            imgEl.style.marginTop = "6px";
+            imgEl.addEventListener("click", () => openImageModal(imgEl.src));
+            msg.appendChild(imgEl);
+        });
+    }
+
+    if (ragSources && ragSources.length > 0) {
+        const sourcesDiv = document.createElement("div");
+        sourcesDiv.className = "rag-sources";
+        sourcesDiv.innerHTML = `<span class="rag-sources-title">📚 Sources:</span>`;
+        const uniqueSources = [...new Set(ragSources)];
+        uniqueSources.forEach(src => {
+            const pill = document.createElement("span");
+            pill.className = "rag-source-pill";
+            pill.textContent = src;
+            sourcesDiv.appendChild(pill);
+        });
+        wrapper.appendChild(sourcesDiv);
+    }
+
+    const time = document.createElement("div");
+    time.className = "message-time";
+    time.textContent = new Date(timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+    wrapper.appendChild(time);
+
+    const actions = document.createElement("div");
+    actions.className = "bubble-actions";
+    const copyBtn = mkBtn("📋 Copy", () => {
+        navigator.clipboard.writeText(msg.innerText).then(() => toast("Copied!", "success", 1200));
+    });
+    actions.appendChild(copyBtn);
+
+    if (sender === "user") {
+        actions.appendChild(mkBtn("✏️ Edit", () => editAndResend(msgId)));
+    } else {
+        actions.appendChild(mkBtn("🔄 Regen", () => regenerate(msgId)));
+        actions.appendChild(mkBtn("🔊 Read", () => speakText(text)));
+    }
+
+    wrapper.appendChild(actions);
+    chatContainer.appendChild(wrapper);
+    enhanceCodeBlocks(msg);
+    autoScrollChat();
+
+    if (save) {
+        const conv = conversations[activeConvId];
+        conv.messages.push({
+            id: msgId, text, sender,
+            images: images || [],
+            ts: timestamp || Date.now(),
+            thinking: thinking || null,
+            ragSources: ragSources || null
+        });
+        if (sender === "user" && conv.messages.filter(m => m.sender === "user").length === 1) {
+            conv.title = text.slice(0, 40) + (text.length > 40 ? "…" : "");
+            if (chatTitle) chatTitle.textContent = conv.title;
+            renderHistoryList();
+        }
+        saveConversations();
+        updateTokenCounter();
+    }
+    return wrapper;
 }
 
 function mkBtn(label, handler) {
-  const b = document.createElement("span");
-  b.className = "action-link";
-  b.textContent = label;
-  b.addEventListener("click", handler);
-  return b;
+    const b = document.createElement("span");
+    b.className = "action-link";
+    b.textContent = label;
+    b.addEventListener("click", handler);
+    return b;
 }
 
 async function editAndResend(msgId) {
-  const conv = conversations[activeConvId];
-  const idx = conv.messages.findIndex(m => m.id === msgId);
-  if (idx < 0) return;
-  const original = conv.messages[idx];
-  const newText = prompt("Edit message:", original.text);
-  if (newText === null || newText.trim() === "") return;
-  conv.messages = conv.messages.slice(0, idx);
-  saveConversations();
-  renderMessages();
-  if(userInput) userInput.value = newText;
-  if(sendBtn) sendBtn.click();
+    const conv = conversations[activeConvId];
+    const idx = conv.messages.findIndex(m => m.id === msgId);
+    if (idx < 0) return;
+    const original = conv.messages[idx];
+    const newText = prompt("Edit message:", original.text);
+    if (newText === null || newText.trim() === "") return;
+    conv.messages = conv.messages.slice(0, idx);
+    saveConversations();
+    renderMessages();
+    if(userInput) userInput.value = newText;
+    if(sendBtn) sendBtn.click();
 }
 
 function regenerate(msgId) {
-  const conv = conversations[activeConvId];
-  const idx = conv.messages.findIndex(m => m.id === msgId);
-  if (idx < 0) return;
-  conv.messages = conv.messages.slice(0, idx);
-  saveConversations();
-  renderMessages();
-  const lastUser = [...conv.messages].reverse().find(m => m.sender === "user");
-  if (lastUser) askOllama(lastUser.text, lastUser.images);
+    const conv = conversations[activeConvId];
+    const idx = conv.messages.findIndex(m => m.id === msgId);
+    if (idx < 0) return;
+    conv.messages = conv.messages.slice(0, idx);
+    saveConversations();
+    renderMessages();
+    const lastUser = [...conv.messages].reverse().find(m => m.sender === "user");
+    if (lastUser) askOllama(lastUser.text, lastUser.images);
 }
 
 /* ============ Export / Import ============ */
 if (exportBtn) exportBtn.addEventListener("click", () => {
-  const conv = conversations[activeConvId];
-  if (!conv || conv.messages.length === 0) return toast("No messages to export", "warning");
-  const dataStr = JSON.stringify(conv, null, 2);
-  const blob = new Blob([dataStr], { type: "application/json" });
-  downloadBlob(blob, `${sanitizeFilename(conv.title)}_backup.json`);
-  toast("Exported as JSON", "success");
+    const conv = conversations[activeConvId];
+    if (!conv || conv.messages.length === 0) return toast("No messages to export", "warning");
+    const dataStr = JSON.stringify(conv, null, 2);
+    const blob = new Blob([dataStr], { type: "application/json" });
+    downloadBlob(blob, `${sanitizeFilename(conv.title)}_backup.json`);
+    toast("Exported as JSON", "success");
 });
 
 if (exportMdBtn) exportMdBtn.addEventListener("click", () => {
-  const conv = conversations[activeConvId];
-  if (!conv || conv.messages.length === 0) return toast("No messages to export", "warning");
-  let md = `# ${conv.title}\n\n*Exported: ${new Date().toLocaleString()}*\n\n---\n\n`;
-  conv.messages.forEach(m => {
-    const author = m.sender === "user" ? "You" : "AI";
-    const time = new Date(m.ts).toLocaleTimeString();
-    md += `### ${author} _${time}_\n\n${m.text}\n\n`;
-  });
-  const blob = new Blob([md], { type: "text/markdown" });
-  downloadBlob(blob, `${sanitizeFilename(conv.title)}.md`);
-  toast("Exported as Markdown", "success");
+    const conv = conversations[activeConvId];
+    if (!conv || conv.messages.length === 0) return toast("No messages to export", "warning");
+    let md = `# ${conv.title}\n\n*Exported: ${new Date().toLocaleString()}*\n\n---\n\n`;
+    conv.messages.forEach(m => {
+        const author = m.sender === "user" ? "You" : "AI";
+        const time = new Date(m.ts).toLocaleTimeString();
+        md += `### ${author} _${time}_\n\n${m.text}\n\n`;
+    });
+    const blob = new Blob([md], { type: "text/markdown" });
+    downloadBlob(blob, `${sanitizeFilename(conv.title)}.md`);
+    toast("Exported as Markdown", "success");
 });
 
 function downloadBlob(blob, filename) {
-  const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob);
-  a.download = filename;
-  a.click();
-  URL.revokeObjectURL(a.href);
+    const a = document.createElement("a");
+    a.href = URL.createObjectURL(blob);
+    a.download = filename;
+    a.click();
+    URL.revokeObjectURL(a.href);
 }
 function sanitizeFilename(name) { return name.replace(/[^a-z0-9]/gi, '_').substring(0, 50); }
 
 if (importBtn) importBtn.addEventListener("click", () => importFile.click());
 if (importFile) importFile.addEventListener("change", async (e) => {
-  const file = e.target.files[0];
-  if (!file) return;
-  const text = await file.text();
-  try {
-    let importedData;
-    if (file.name.endsWith(".md")) {
-      importedData = { id: "conv" + Date.now(), title: file.name.replace(".md", ""), messages: [{ id: "msg_1", text, sender: "assistant", images: [], ts: Date.now() }], createdAt: Date.now() };
-    } else {
-      importedData = JSON.parse(text);
-      if (!importedData.messages) throw new Error("Invalid");
+    const file = e.target.files[0];
+    if (!file) return;
+    const text = await file.text();
+    try {
+        let importedData;
+        if (file.name.endsWith(".md")) {
+            importedData = { id: "conv" + Date.now(), title: file.name.replace(".md", ""), messages: [{ id: "msg_1", text, sender: "assistant", images: [], ts: Date.now() }], createdAt: Date.now() };
+        } else {
+            importedData = JSON.parse(text);
+            if (!importedData.messages) throw new Error("Invalid");
+        }
+        importedData.id = "conv" + Date.now();
+        conversations[importedData.id] = importedData;
+        saveConversations();
+        switchConversation(importedData.id);
+        toast("Chat imported successfully!", "success");
+    } catch (err) {
+        toast("Failed to import: " + err.message, "error");
     }
-    importedData.id = "conv" + Date.now();
-    conversations[importedData.id] = importedData;
-    saveConversations();
-    switchConversation(importedData.id);
-    toast("Chat imported successfully!", "success");
-  } catch (err) {
-    toast("Failed to import: " + err.message, "error");
-  }
-  e.target.value = "";
+    e.target.value = "";
 });
 
 /* ============ Event Listeners ============ */
 if (clearBtn) clearBtn.addEventListener("click", () => {
-  if (!confirm("Clear current chat?")) return;
-  conversations[activeConvId].messages = [];
-  conversations[activeConvId].title = "New Chat";
-  saveConversations();
-  renderMessages();
-  renderHistoryList();
-  toast("Chat cleared");
+    if (!confirm("Clear current chat?")) return;
+    conversations[activeConvId].messages = [];
+    conversations[activeConvId].title = "New Chat";
+    saveConversations();
+    renderMessages();
+    renderHistoryList();
+    toast("Chat cleared");
 });
 
 if (toggleSettingsBtn) toggleSettingsBtn.addEventListener("click", () => { if (settingsModal) settingsModal.classList.add('active'); });
@@ -718,8 +634,8 @@ if (closeSettings) closeSettings.addEventListener("click", () => { if (settingsM
 if (settingsModal) settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) settingsModal.classList.remove('active'); });
 
 if (cfgOpenaiMode) cfgOpenaiMode.addEventListener("change", () => {
-  if (apiKeyGroup) apiKeyGroup.style.display = cfgOpenaiMode.checked ? "block" : "none";
-  browser.storage.local.set({ openaiMode: cfgOpenaiMode.checked });
+    if (apiKeyGroup) apiKeyGroup.style.display = cfgOpenaiMode.checked ? "block" : "none";
+    browser.storage.local.set({ openaiMode: cfgOpenaiMode.checked });
 });
 if (cfgApiKey) cfgApiKey.addEventListener("change", () => browser.storage.local.set({ apiKey: cfgApiKey.value }));
 if (cfgShowThinking) cfgShowThinking.addEventListener("change", () => browser.storage.local.set({ showThinking: cfgShowThinking.checked }));
@@ -727,14 +643,14 @@ if (cfgAutoTts) cfgAutoTts.addEventListener("change", () => browser.storage.loca
 
 if (btnFetchModels) btnFetchModels.addEventListener("click", fetchOllamaModels);
 if (cfgModel) cfgModel.addEventListener("change", () => {
-  browser.storage.local.set({ selectedModel: cfgModel.value });
-  if (currentModelTag) currentModelTag.innerText = cfgModel.value;
+    browser.storage.local.set({ selectedModel: cfgModel.value });
+    if (currentModelTag) currentModelTag.innerText = cfgModel.value;
 });
 if (cfgUrl) cfgUrl.addEventListener("change", () => browser.storage.local.set({ serverUrl: cfgUrl.value }));
 if (cfgSystemPrompt) cfgSystemPrompt.addEventListener("change", () => browser.storage.local.set({ systemPrompt: cfgSystemPrompt.value }));
 if (cfgTemp) cfgTemp.addEventListener("input", () => {
-  if (tempVal) tempVal.textContent = cfgTemp.value;
-  browser.storage.local.set({ temperature: parseFloat(cfgTemp.value) });
+    if (tempVal) tempVal.textContent = cfgTemp.value;
+    browser.storage.local.set({ temperature: parseFloat(cfgTemp.value) });
 });
 if (cfgCtx) cfgCtx.addEventListener("change", () => browser.storage.local.set({ contextLength: parseInt(cfgCtx.value) }));
 if (cfgStream) cfgStream.addEventListener("change", () => browser.storage.local.set({ stream: cfgStream.checked }));
@@ -745,781 +661,787 @@ if (cfgRagTopk) cfgRagTopk.addEventListener("change", () => browser.storage.loca
 if (cfgRagChunkSize) cfgRagChunkSize.addEventListener("change", () => browser.storage.local.set({ ragChunkSize: parseInt(cfgRagChunkSize.value) }));
 
 if (cfgPresetPrompt) cfgPresetPrompt.addEventListener("change", () => {
-  const val = cfgPresetPrompt.value;
-  browser.storage.local.set({ presetPrompt: val });
-  if (predefinedPrompts[val] !== undefined && cfgSystemPrompt) {
-    cfgSystemPrompt.value = predefinedPrompts[val];
-    browser.storage.local.set({ systemPrompt: cfgSystemPrompt.value });
-  }
+    const val = cfgPresetPrompt.value;
+    browser.storage.local.set({ presetPrompt: val });
+    if (predefinedPrompts[val] !== undefined && cfgSystemPrompt) {
+        cfgSystemPrompt.value = predefinedPrompts[val];
+        browser.storage.local.set({ systemPrompt: cfgSystemPrompt.value });
+    }
 });
 
 // Pull Model
 if (btnConfirmPull) btnConfirmPull.addEventListener("click", async () => {
-  const modelName = pullModelName ? pullModelName.value.trim() : "";
-  if (!modelName) return toast("Enter a model name", "warning");
-  if (btnConfirmPull) btnConfirmPull.disabled = true;
-  if (pullProgress) pullProgress.textContent = "Starting pull...";
-  browser.runtime.sendMessage({
-    action: "pull-model",
-    baseUrl: cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "",
-    modelName
-  });
+    const modelName = pullModelName ? pullModelName.value.trim() : "";
+    if (!modelName) return toast("Enter a model name", "warning");
+    if (btnConfirmPull) btnConfirmPull.disabled = true;
+    if (pullProgress) pullProgress.textContent = "Starting pull...";
+    browser.runtime.sendMessage({
+        action: "pull-model",
+        baseUrl: cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "",
+        modelName
+    });
 });
 
 browser.runtime.onMessage.addListener((msg) => {
-  if (msg.action === "pull-progress") {
-    if (msg.data.status && pullProgress) pullProgress.textContent = msg.data.status;
-    if (msg.data.total && msg.data.completed && pullProgress) {
-      const pct = ((msg.data.completed / msg.data.total) * 100).toFixed(1);
-      pullProgress.textContent += ` (${pct}%)`;
+    if (msg.action === "pull-progress") {
+        if (msg.data.status && pullProgress) pullProgress.textContent = msg.data.status;
+        if (msg.data.total && msg.data.completed && pullProgress) {
+            const pct = ((msg.data.completed / msg.data.total) * 100).toFixed(1);
+            pullProgress.textContent += ` (${pct}%)`;
+        }
+    } else if (msg.action === "pull-complete") {
+        if (pullProgress) pullProgress.textContent = "✅ Pull complete! Fetching models...";
+        if (btnConfirmPull) btnConfirmPull.disabled = false;
+        fetchOllamaModels();
+        setTimeout(() => { if (pullProgress) pullProgress.textContent = ""; }, 2000);
+    } else if (msg.action === "pull-error") {
+        if (pullProgress) pullProgress.textContent = `❌ Error: ${msg.error}`;
+        if (btnConfirmPull) btnConfirmPull.disabled = false;
     }
-  } else if (msg.action === "pull-complete") {
-    if (pullProgress) pullProgress.textContent = "✅ Pull complete! Fetching models...";
-    if (btnConfirmPull) btnConfirmPull.disabled = false;
-    fetchOllamaModels();
-    setTimeout(() => { if (pullProgress) pullProgress.textContent = ""; }, 2000);
-  } else if (msg.action === "pull-error") {
-    if (pullProgress) pullProgress.textContent = `❌ Error: ${msg.error}`;
-    if (btnConfirmPull) btnConfirmPull.disabled = false;
-  }
 });
 
 // RAG Indexing
 if (ragIndexUrlBtn) ragIndexUrlBtn.addEventListener("click", async () => {
-  const url = ragUrlInput ? ragUrlInput.value.trim() : "";
-  if (!url) return toast("Enter a URL", "warning");
-  if (ragIndexStatus) ragIndexStatus.textContent = "Fetching URL...";
-  try {
-    const res = await browser.runtime.sendMessage({ action: "fetch-url-text", url });
-    if (res.error) throw new Error(res.error);
-    if (!res.text || res.text.length < 50) throw new Error("No text content found");
-    if (ragIndexStatus) ragIndexStatus.textContent = "Indexing content...";
-    await indexContent(url, res.text);
-    if (ragIndexStatus) ragIndexStatus.textContent = `✅ Indexed ${url}`;
-    if (ragUrlInput) ragUrlInput.value = "";
-    toast("URL indexed successfully!", "success");
-    loadRagDocuments();
-  } catch (e) {
-    if (ragIndexStatus) ragIndexStatus.textContent = `❌ ${e.message}`;
-    toast("Indexing failed: " + e.message, "error");
-  }
+    const url = ragUrlInput ? ragUrlInput.value.trim() : "";
+    if (!url) return toast("Enter a URL", "warning");
+    if (ragIndexStatus) ragIndexStatus.textContent = "Fetching URL...";
+    try {
+        const res = await browser.runtime.sendMessage({ action: "fetch-url-text", url });
+        if (res.error) throw new Error(res.error);
+        if (!res.text || res.text.length < 50) throw new Error("No text content found");
+        if (ragIndexStatus) ragIndexStatus.textContent = "Indexing content...";
+        await indexContent(url, res.text);
+        if (ragIndexStatus) ragIndexStatus.textContent = `✅ Indexed ${url}`;
+        if (ragUrlInput) ragUrlInput.value = "";
+        toast("URL indexed successfully!", "success");
+        loadRagDocuments();
+    } catch (e) {
+        if (ragIndexStatus) ragIndexStatus.textContent = `❌ ${e.message}`;
+        toast("Indexing failed: " + e.message, "error");
+    }
 });
 
 if (ragIndexFileBtn) ragIndexFileBtn.addEventListener("click", async () => {
-  const files = ragFileInput ? Array.from(ragFileInput.files) : [];
-  if (files.length === 0) return toast("Select files", "warning");
-  if (ragIndexStatus) ragIndexStatus.textContent = "Processing files...";
-  try {
-    for (const file of files) {
-      if (ragIndexStatus) ragIndexStatus.textContent = `Processing ${file.name}...`;
-      let text = "";
-      if (file.type === "application/pdf") {
-        text = await extractTextFromPDF(file);
-      } else if (file.type.startsWith("audio/")) {
-        text = await transcribeAudio(file);
-      } else {
-        text = await file.text();
-      }
-      if (!text || text.length < 50) throw new Error(`No extractable text from ${file.name}`);
-      await indexContent(file.name, text);
+    const files = ragFileInput ? Array.from(ragFileInput.files) : [];
+    if (files.length === 0) return toast("Select files", "warning");
+    if (ragIndexStatus) ragIndexStatus.textContent = "Processing files...";
+    try {
+        for (const file of files) {
+            if (ragIndexStatus) ragIndexStatus.textContent = `Processing ${file.name}...`;
+            let text = "";
+            if (file.type === "application/pdf") {
+                text = await extractTextFromPDF(file);
+            } else if (file.type.startsWith("audio/")) {
+                text = await transcribeAudio(file);
+            } else {
+                text = await file.text();
+            }
+            if (!text || text.length < 50) throw new Error(`No extractable text from ${file.name}`);
+            await indexContent(file.name, text);
+        }
+        if (ragIndexStatus) ragIndexStatus.textContent = `✅ Indexed ${files.length} file(s)`;
+        if (ragFileInput) ragFileInput.value = "";
+        toast("Files indexed successfully!", "success");
+        loadRagDocuments();
+    } catch (e) {
+        if (ragIndexStatus) ragIndexStatus.textContent = `❌ ${e.message}`;
+        toast("Indexing failed: " + e.message, "error");
     }
-    if (ragIndexStatus) ragIndexStatus.textContent = `✅ Indexed ${files.length} file(s)`;
-    if (ragFileInput) ragFileInput.value = "";
-    toast("Files indexed successfully!", "success");
-    loadRagDocuments();
-  } catch (e) {
-    if (ragIndexStatus) ragIndexStatus.textContent = `❌ ${e.message}`;
-    toast("Indexing failed: " + e.message, "error");
-  }
 });
 
 async function extractTextFromPDF(file) {
-  if (typeof pdfjsLib === 'undefined') throw new Error("PDF.js library is missing.");
-  const arrayBuffer = await file.arrayBuffer();
-  const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
-  let text = "";
-  for (let i = 1; i <= pdf.numPages; i++) {
-    const page = await pdf.getPage(i);
-    const content = await page.getTextContent();
-    text += content.items.map(item => item.str).join(" ") + "\n";
-  }
-  return text;
+    if (typeof pdfjsLib === 'undefined') throw new Error("PDF.js library is missing.");
+    const arrayBuffer = await file.arrayBuffer();
+    const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
+    let text = "";
+    for (let i = 1; i <= pdf.numPages; i++) {
+        const page = await pdf.getPage(i);
+        const content = await page.getTextContent();
+        text += content.items.map(item => item.str).join(" ") + "\n";
+    }
+    return text;
 }
 async function transcribeAudio(file) {
-  return `[Audio file: ${file.name} - Transcription requires whisper model]`;
+    return `[Audio file: ${file.name} - Transcription requires whisper model]`;
 }
 
 if (chatTitle) {
-  chatTitle.addEventListener("blur", () => {
-    const conv = conversations[activeConvId];
-    if (conv) {
-      conv.title = chatTitle.textContent.trim() || "New Chat";
-      saveConversations();
-      renderHistoryList();
-    }
-  });
-  chatTitle.addEventListener("keydown", (e) => {
-    if (e.key === "Enter") { e.preventDefault(); chatTitle.blur(); }
-  });
+    chatTitle.addEventListener("blur", () => {
+        const conv = conversations[activeConvId];
+        if (conv) {
+            conv.title = chatTitle.textContent.trim() || "New Chat";
+            saveConversations();
+            renderHistoryList();
+        }
+    });
+    chatTitle.addEventListener("keydown", (e) => {
+        if (e.key === "Enter") { e.preventDefault(); chatTitle.blur(); }
+    });
 }
 
 fontSizeBtns.forEach(btn => {
-  btn.addEventListener("click", () => {
-    document.body.classList.remove("font-sm", "font-md", "font-lg");
-    const size = btn.dataset.size;
-    const cls = size === '12' ? 'sm' : size === '14' ? 'md' : 'lg';
-    document.body.classList.add(`font-${cls}`);
-    browser.storage.local.set({ fontSize: cls });
-    fontSizeBtns.forEach(b => b.classList.toggle("active", b === btn));
-  });
+    btn.addEventListener("click", () => {
+        document.body.classList.remove("font-sm", "font-md", "font-lg");
+        const size = btn.dataset.size;
+        const cls = size === '12' ? 'sm' : size === '14' ? 'md' : 'lg';
+        document.body.classList.add(`font-${cls}`);
+        browser.storage.local.set({ fontSize: cls });
+        fontSizeBtns.forEach(b => b.classList.toggle("active", b === btn));
+    });
 });
 
 /* ============ File Attach ============ */
 if (attachBtn) attachBtn.addEventListener("click", () => { if (filePicker) filePicker.click(); });
 if (filePicker) filePicker.addEventListener("change", async e => {
-  await handleFiles(Array.from(e.target.files));
-  filePicker.value = "";
+    await handleFiles(Array.from(e.target.files));
+    filePicker.value = "";
 });
 
 async function handleFiles(files) {
-  for (const file of files) {
-    if (file.type.startsWith("image/")) {
-      const b64 = await fileToBase64(file);
-      currentImages.push(b64);
-      const thumb = document.createElement("img");
-      thumb.src = `data:${file.type};base64,${b64}`;
-      thumb.className = "thumb-preview";
-      thumb.addEventListener("click", () => openImageModal(thumb.src));
-      if (previewZone) previewZone.appendChild(thumb);
-    } else {
-      const txt = await file.text();
-      contextFileText += `\n\n[Context from ${file.name}]:\n${txt}`;
-      const pill = document.createElement("span");
-      pill.className = "file-pill";
-      pill.textContent = `📄 ${file.name}`;
-      if (previewZone) previewZone.appendChild(pill);
+    for (const file of files) {
+        if (file.type.startsWith("image/")) {
+            const b64 = await fileToBase64(file);
+            currentImages.push(b64);
+            const thumb = document.createElement("img");
+            thumb.src = `data:${file.type};base64,${b64}`;
+            thumb.className = "thumb-preview";
+            thumb.addEventListener("click", () => openImageModal(thumb.src));
+            if (previewZone) previewZone.appendChild(thumb);
+        } else {
+            const txt = await file.text();
+            contextFileText += `\n\n[Context from ${file.name}]:\n${txt}`;
+            const pill = document.createElement("span");
+            pill.className = "file-pill";
+            pill.textContent = `📄 ${file.name}`;
+            if (previewZone) previewZone.appendChild(pill);
+        }
     }
-  }
 }
 function fileToBase64(file) {
-  return new Promise((res, rej) => {
-    const r = new FileReader();
-    r.onload = () => res(r.result.split(",")[1]);
-    r.onerror = rej;
-    r.readAsDataURL(file);
-  });
+    return new Promise((res, rej) => {
+        const r = new FileReader();
+        r.onload = () => res(r.result.split(",")[1]);
+        r.onerror = rej;
+        r.readAsDataURL(file);
+    });
 }
 
 /* ============ Image Modal ============ */
 function openImageModal(src) {
-  if (!imageModal || !modalImage) return;
-  modalImage.src = src;
-  imageModal.classList.add("active");
+    if (!imageModal || !modalImage) return;
+    modalImage.src = src;
+    imageModal.classList.add("active");
 }
 if (closeModal) closeModal.addEventListener("click", () => { if (imageModal) imageModal.classList.remove("active"); });
 if (imageModal) imageModal.addEventListener("click", (e) => { if (e.target === imageModal) imageModal.classList.remove("active"); });
 
 /* ============ Voice Input ============ */
 function initVoiceRecognition() {
-  const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) { if (voiceBtn) voiceBtn.style.display = "none"; return; }
-  recognition = new SpeechRecognition();
-  recognition.continuous = false;
-  recognition.interimResults = true;
-  recognition.lang = "en-US";
-  recognition.onresult = (event) => {
-    const transcript = Array.from(event.results).map(r => r[0].transcript).join(" ");
-    if (userInput) {
-      userInput.value = transcript;
-      autoResizeTextarea();
-    }
-  };
-  recognition.onend = () => {
-    isRecording = false;
-    if (voiceBtn) {
-      voiceBtn.classList.remove("recording");
-      voiceBtn.textContent = "🎤";
-    }
-  };
-  recognition.onerror = (e) => {
-    toast("Voice error: " + e.error, "error");
-    isRecording = false;
-    if (voiceBtn) {
-      voiceBtn.classList.remove("recording");
-      voiceBtn.textContent = "🎤";
-    }
-  };
+    const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
+    if (!SpeechRecognition) { if (voiceBtn) voiceBtn.style.display = "none"; return; }
+    recognition = new SpeechRecognition();
+    recognition.continuous = false;
+    recognition.interimResults = true;
+    recognition.lang = "en-US";
+    recognition.onresult = (event) => {
+        const transcript = Array.from(event.results).map(r => r[0].transcript).join(" ");
+        if (userInput) {
+            userInput.value = transcript;
+            autoResizeTextarea();
+        }
+    };
+    recognition.onend = () => {
+        isRecording = false;
+        if (voiceBtn) {
+            voiceBtn.classList.remove("recording");
+            voiceBtn.textContent = "🎤";
+        }
+    };
+    recognition.onerror = (e) => {
+        toast("Voice error: " + e.error, "error");
+        isRecording = false;
+        if (voiceBtn) {
+            voiceBtn.classList.remove("recording");
+            voiceBtn.textContent = "🎤";
+        }
+    };
 }
 if (voiceBtn) voiceBtn.addEventListener("click", () => {
-  if (!recognition) return toast("Voice not supported", "error");
-  if (isRecording) { recognition.stop(); }
-  else {
-    recognition.start();
-    isRecording = true;
-    voiceBtn.classList.add("recording");
-    voiceBtn.textContent = "⏹";
-    toast("Listening...", "info", 1500);
-  }
+    if (!recognition) return toast("Voice not supported", "error");
+    if (isRecording) { recognition.stop(); }
+    else {
+        recognition.start();
+        isRecording = true;
+        voiceBtn.classList.add("recording");
+        voiceBtn.textContent = "⏹";
+        toast("Listening...", "info", 1500);
+    }
 });
 
 /* ============ Text-to-Speech ============ */
 function speakText(text) {
-  if (!window.speechSynthesis) return toast("TTS not supported", "error");
-  if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
-  const clean = text.replace(/`[\s\S]*?`/g, " ").replace(/[#*`]/g, " ");
-  const utter = new SpeechSynthesisUtterance(clean);
-  utter.rate = 1;
-  utter.pitch = 1;
-  speechSynthesis.speak(utter);
+    if (!window.speechSynthesis) return toast("TTS not supported", "error");
+    if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
+    const clean = text.replace(/`[\s\S]*?`/g, " ").replace(/[#*`]/g, " ");
+    const utter = new SpeechSynthesisUtterance(clean);
+    utter.rate = 1;
+    utter.pitch = 1;
+    speechSynthesis.speak(utter);
 }
 if (ttsToggleBtn) ttsToggleBtn.addEventListener("click", () => {
-  const conv = conversations[activeConvId];
-  if (!conv) return;
-  const lastAssistant = [...conv.messages].reverse().find(m => m.sender === "assistant");
-  if (lastAssistant) speakText(lastAssistant.text);
-  else toast("No assistant message to read", "warning");
+    const conv = conversations[activeConvId];
+    if (!conv) return;
+    const lastAssistant = [...conv.messages].reverse().find(m => m.sender === "assistant");
+    if (lastAssistant) speakText(lastAssistant.text);
+    else toast("No assistant message to read", "warning");
 });
 
 /* ============ Prompt Templates ============ */
 if (promptTemplates) promptTemplates.addEventListener("change", (e) => {
-  const templates = {
-    summarize: "Please summarize the following content concisely:\n\n",
-    explain: "Explain the following concept in simple terms:\n\n",
-    translate: "Translate the following text to English:\n\n",
-    "code-review": "Review this code for bugs, improvements, and best practices:\n\n```\n\n```\n",
-    brainstorm: "Help me brainstorm ideas for: ",
-    refactor: "Refactor this code to improve readability and performance:\n\n```\n\n```\n"
-  };
-  const val = e.target.value;
-  if (templates[val] && userInput) {
-    userInput.value = templates[val];
-    userInput.focus();
-    autoResizeTextarea();
-  }
-  e.target.value = "";
+    const templates = {
+        summarize: "Please summarize the following content concisely:\n\n",
+        explain: "Explain the following concept in simple terms:\n\n",
+        translate: "Translate the following text to English:\n\n",
+        "code-review": "Review this code for bugs, improvements, and best practices:\n\n```\n\n```\n",
+        brainstorm: "Help me brainstorm ideas for: ",
+        refactor: "Refactor this code to improve readability and performance:\n\n```\n\n```\n"
+    };
+    const val = e.target.value;
+    if (templates[val] && userInput) {
+        userInput.value = templates[val];
+        userInput.focus();
+        autoResizeTextarea();
+    }
+    e.target.value = "";
 });
 
-/* ============ Incoming prompts ============ */
+/* ============ Incoming prompts (CONTEXT MENU HANDLER) ============ */
 browser.runtime.onMessage.addListener(handleIncomingPrompt);
+
 function handleIncomingPrompt(msg) {
-  if (msg?.action !== "process-prompt") return;
-  currentImages = msg.images || [];
-  if (userInput) userInput.value = msg.text || "";
-  autoResizeTextarea();
-  if (sendBtn) sendBtn.click();
+    console.log("[Sidebar] Received pending prompt:", msg);
+    
+    if (msg?.action !== "process-prompt") return;
+
+    // Clear previous state
+    currentImages = [];
+    if (previewZone) previewZone.innerHTML = "";
+
+    // Handle Images (if any were passed, e.g., from "Explain Image")
+    if (msg.images && msg.images.length > 0) {
+        msg.images.forEach(imgUrl => {
+            const pill = document.createElement("span");
+            pill.className = "file-pill";
+            pill.textContent = `🖼️ Image`;
+            if (previewZone) previewZone.appendChild(pill);
+            currentImages.push(imgUrl);
+        });
+    }
+
+    // Set Text
+    if (userInput) {
+        userInput.value = msg.text || "";
+        autoResizeTextarea();
+        userInput.focus();
+    }
+
+    // Auto-send if there is content
+    if ((msg.text && msg.text.trim().length > 0) || currentImages.length > 0) {
+        // Small delay to ensure UI is ready
+        setTimeout(() => {
+            if (sendBtn) {
+                console.log("[Sidebar] Triggering send button click");
+                sendBtn.click();
+            } else {
+                console.error("[Sidebar] sendBtn is null!");
+            }
+        }, 100);
+    }
 }
 
 /* ============ Send ============ */
 if (sendBtn) sendBtn.addEventListener("click", () => {
-  let text = userInput ? userInput.value.trim() : "";
-  if (!text && currentImages.length === 0 && !contextFileText) return;
-  if (contextFileText) text = `${text}\n${contextFileText}`.trim();
-  if (userInput) userInput.value = "";
-  if (previewZone) previewZone.innerHTML = "";
-  const imgs = [...currentImages];
-  currentImages = [];
-  contextFileText = "";
-  autoResizeTextarea();
-  askOllama(text, imgs);
+    let text = userInput ? userInput.value.trim() : "";
+    if (!text && currentImages.length === 0 && !contextFileText) return;
+    if (contextFileText) text = `${text}\n${contextFileText}`.trim();
+    if (userInput) userInput.value = "";
+    if (previewZone) previewZone.innerHTML = "";
+    const imgs = [...currentImages];
+    currentImages = [];
+    contextFileText = "";
+    autoResizeTextarea();
+    askOllama(text, imgs);
 });
 
 if (userInput) {
-  userInput.addEventListener("keydown", e => {
-    if (e.key === "Enter" && !e.shiftKey) {
-      e.preventDefault();
-      if (sendBtn) sendBtn.click();
-    }
-  });
-  userInput.addEventListener("input", autoResizeTextarea);
+    userInput.addEventListener("keydown", e => {
+        if (e.key === "Enter" && !e.shiftKey) {
+            e.preventDefault();
+            if (sendBtn) sendBtn.click();
+        }
+    });
+    userInput.addEventListener("input", autoResizeTextarea);
 }
 
 function autoResizeTextarea() {
-  if (!userInput) return;
-  userInput.style.height = "auto";
-  userInput.style.height = Math.min(userInput.scrollHeight, 160) + "px";
+    if (!userInput) return;
+    userInput.style.height = "auto";
+    userInput.style.height = Math.min(userInput.scrollHeight, 160) + "px";
 }
 
 /* ============ Stop ============ */
 if (stopBtn) stopBtn.addEventListener("click", () => {
-  if (currentAbortController) currentAbortController.abort();
-  if (speechSynthesis.speaking) speechSynthesis.cancel();
+    if (currentAbortController) currentAbortController.abort();
+    if (speechSynthesis.speaking) speechSynthesis.cancel();
 });
 
 /* ============ RAG Engine ============ */
 function openDB() {
-  return new Promise((resolve, reject) => {
-    const request = indexedDB.open(DB_NAME, DB_VERSION);
-    request.onupgradeneeded = (event) => {
-      const db = event.target.result;
-      if (!db.objectStoreNames.contains(STORE_NAME)) {
-        const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-        store.createIndex('source', 'source', { unique: false });
-      }
-      if (!db.objectStoreNames.contains(DOCS_STORE)) {
-        db.createObjectStore(DOCS_STORE, { keyPath: 'name' });
-      }
-    };
-    request.onsuccess = (event) => resolve(event.target.result);
-    request.onerror = (event) => reject(event.target.error);
-  });
+    return new Promise((resolve, reject) => {
+        const request = indexedDB.open(DB_NAME, DB_VERSION);
+        request.onupgradeneeded = (event) => {
+            const db = event.target.result;
+            if (!db.objectStoreNames.contains(STORE_NAME)) {
+                const store = db.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                store.createIndex('source', 'source', { unique: false });
+            }
+            if (!db.objectStoreNames.contains(DOCS_STORE)) {
+                db.createObjectStore(DOCS_STORE, { keyPath: 'name' });
+            }
+        };
+        request.onsuccess = (event) => resolve(event.target.result);
+        request.onerror = (event) => reject(event.target.error);
+    });
 }
 
 async function getEmbedding(text, model) {
-  const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
-  const res = await fetch(`${baseUrl}/api/embeddings`, {
-    method: 'POST',
-    headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model, prompt: text })
-  });
-  if (!res.ok) throw new Error('Embedding API failed');
-  const data = await res.json();
-  return data.embedding;
+    const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
+    const res = await fetch(`${baseUrl}/api/embeddings`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ model, prompt: text })
+    });
+    if (!res.ok) throw new Error('Embedding API failed');
+    const data = await res.json();
+    return data.embedding;
 }
 
 function chunkTextBySentences(text, chunkSize = 1000, overlap = 200) {
-  const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
-  const chunks = [];
-  let currentChunk = "";
-  for (const sentence of sentences) {
-    if ((currentChunk + sentence).length > chunkSize && currentChunk.length > 0) {
-      chunks.push(currentChunk.trim());
-      const overlapText = currentChunk.slice(-overlap);
-      currentChunk = overlapText + sentence;
-    } else {
-      currentChunk += sentence;
+    const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
+    const chunks = [];
+    let currentChunk = "";
+    for (const sentence of sentences) {
+        if ((currentChunk + sentence).length > chunkSize && currentChunk.length > 0) {
+            chunks.push(currentChunk.trim());
+            const overlapText = currentChunk.slice(-overlap);
+            currentChunk = overlapText + sentence;
+        } else {
+            currentChunk += sentence;
+        }
     }
-  }
-  if (currentChunk.trim().length > 0) chunks.push(currentChunk.trim());
-  return chunks;
+    if (currentChunk.trim().length > 0) chunks.push(currentChunk.trim());
+    return chunks;
 }
 
 async function indexContent(source, text) {
-  const db = await openDB();
-  const embeddingModel = cfgRagModel ? cfgRagModel.value : "nomic-embed-text";
-  const chunkSize = cfgRagChunkSize ? parseInt(cfgRagChunkSize.value) : 1000;
-  const chunks = chunkTextBySentences(text, chunkSize, 200);
-  const embeddings = [];
-  for (const chunk of chunks) {
-    const embedding = await getEmbedding(chunk, embeddingModel);
-    embeddings.push({ source, text: chunk, embedding, timestamp: Date.now() });
-  }
-  const tx = db.transaction(STORE_NAME, 'readwrite');
-  const store = tx.objectStore(STORE_NAME);
-  for (const item of embeddings) store.add(item);
-  const docsTx = db.transaction(DOCS_STORE, 'readwrite');
-  docsTx.objectStore(DOCS_STORE).put({ name: source, chunks: chunks.length, timestamp: Date.now() });
-  return new Promise((resolve, reject) => {
-    tx.oncomplete = () => resolve();
-    tx.onerror = (e) => reject(e.target.error);
-  });
+    const db = await openDB();
+    const embeddingModel = cfgRagModel ? cfgRagModel.value : "nomic-embed-text";
+    const chunkSize = cfgRagChunkSize ? parseInt(cfgRagChunkSize.value) : 1000;
+    const chunks = chunkTextBySentences(text, chunkSize, 200);
+    const embeddings = [];
+    for (const chunk of chunks) {
+        const embedding = await getEmbedding(chunk, embeddingModel);
+        embeddings.push({ source, text: chunk, embedding, timestamp: Date.now() });
+    }
+    const tx = db.transaction(STORE_NAME, 'readwrite');
+    const store = tx.objectStore(STORE_NAME);
+    for (const item of embeddings) store.add(item);
+    const docsTx = db.transaction(DOCS_STORE, 'readwrite');
+    docsTx.objectStore(DOCS_STORE).put({ name: source, chunks: chunks.length, timestamp: Date.now() });
+    return new Promise((resolve, reject) => {
+        tx.oncomplete = () => resolve();
+        tx.onerror = (e) => reject(e.target.error);
+    });
 }
 
 async function queryRAG(prompt) {
-  const db = await openDB();
-  const embeddingModel = cfgRagModel ? cfgRagModel.value : "nomic-embed-text";
-  const topK = cfgRagTopk ? parseInt(cfgRagTopk.value) : 3;
-  const queryEmbedding = await getEmbedding(prompt, embeddingModel);
-  const tx = db.transaction(STORE_NAME, 'readonly');
-  const store = tx.objectStore(STORE_NAME);
-  const request = store.getAll();
-  return new Promise((resolve) => {
-    request.onsuccess = () => {
-      const allChunks = request.result;
-      if (allChunks.length === 0) {
-        resolve({ context: "", sources: [] });
-        return;
-      }
-      const scored = allChunks.map(chunk => ({
-        ...chunk,
-        score: cosineSimilarity(queryEmbedding, chunk.embedding)
-      }));
-      scored.sort((a, b) => b.score - a.score);
-      const topChunks = scored.slice(0, topK);
-      const context = topChunks.map(c => `[Source: ${c.source}]\n${c.text}`).join('\n\n---\n\n');
-      const sources = topChunks.map(c => c.source);
-      resolve({ context, sources });
-    };
-  });
+    const db = await openDB();
+    const embeddingModel = cfgRagModel ? cfgRagModel.value : "nomic-embed-text";
+    const topK = cfgRagTopk ? parseInt(cfgRagTopk.value) : 3;
+    const queryEmbedding = await getEmbedding(prompt, embeddingModel);
+    const tx = db.transaction(STORE_NAME, 'readonly');
+    const store = tx.objectStore(STORE_NAME);
+    const request = store.getAll();
+    return new Promise((resolve) => {
+        request.onsuccess = () => {
+            const allChunks = request.result;
+            if (allChunks.length === 0) {
+                resolve({ context: "", sources: [] });
+                return;
+            }
+            const scored = allChunks.map(chunk => ({
+                ...chunk,
+                score: cosineSimilarity(queryEmbedding, chunk.embedding)
+            }));
+            scored.sort((a, b) => b.score - a.score);
+            const topChunks = scored.slice(0, topK);
+            const context = topChunks.map(c => `[Source: ${c.source}]\n${c.text}`).join('\n\n---\n\n');
+            const sources = topChunks.map(c => c.source);
+            resolve({ context, sources });
+        };
+    });
 }
 
 function cosineSimilarity(vecA, vecB) {
-  if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
-  let dot = 0, normA = 0, normB = 0;
-  for (let i = 0; i < vecA.length; i++) {
-    dot += vecA[i] * vecB[i];
-    normA += vecA[i] * vecA[i];
-    normB += vecB[i] * vecB[i];
-  }
-  const denom = Math.sqrt(normA) * Math.sqrt(normB);
-  return denom === 0 ? 0 : dot / denom;
+    if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
+    let dot = 0, normA = 0, normB = 0;
+    for (let i = 0; i < vecA.length; i++) {
+        dot += vecA[i] * vecB[i];
+        normA += vecA[i] * vecA[i];
+        normB += vecB[i] * vecB[i];
+    }
+    const denom = Math.sqrt(normA) * Math.sqrt(normB);
+    return denom === 0 ? 0 : dot / denom;
 }
 
 async function loadRagDocuments() {
-  const db = await openDB();
-  const tx = db.transaction(DOCS_STORE, 'readonly');
-  const store = tx.objectStore(DOCS_STORE);
-  const request = store.getAll();
-  request.onsuccess = () => {
-    const docs = request.result;
-    if (!ragDocList) return;
-    if (docs.length === 0) {
-      ragDocList.innerHTML = `<div style="text-align:center; padding:20px; color:var(--fg-muted); font-size:12px;">No documents indexed yet</div>`;
-      return;
-    }
-    ragDocList.innerHTML = "";
-    docs.forEach(doc => {
-      const item = document.createElement("div");
-      item.className = "rag-doc-item";
-      item.innerHTML = `
+    const db = await openDB();
+    const tx = db.transaction(DOCS_STORE, 'readonly');
+    const store = tx.objectStore(DOCS_STORE);
+    const request = store.getAll();
+    request.onsuccess = () => {
+        const docs = request.result;
+        if (!ragDocList) return;
+        if (docs.length === 0) {
+            ragDocList.innerHTML = `<div style="text-align:center; padding:20px; color:var(--fg-muted); font-size:12px;">No documents indexed yet</div>`;
+            return;
+        }
+        ragDocList.innerHTML = "";
+        docs.forEach(doc => {
+            const item = document.createElement("div");
+            item.className = "rag-doc-item";
+            item.innerHTML = `
         <div class="rag-doc-info">
           <div class="rag-doc-name">${escapeHtml(doc.name)}</div>
           <div class="rag-doc-meta">${doc.chunks} chunks · ${new Date(doc.timestamp).toLocaleDateString()}</div>
         </div>
         <button class="rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">🗑️</button>`;
-      ragDocList.appendChild(item);
-    });
-    ragDocList.querySelectorAll('.rag-doc-delete').forEach(btn => {
-      btn.addEventListener("click", async () => {
-        const name = btn.dataset.name;
-        if (confirm(`Delete "${name}" from knowledge base?`)) {
-          await deleteRagDocument(name);
-          loadRagDocuments();
-          toast("Document deleted", "success");
-        }
-      });
-    });
-  };
+            ragDocList.appendChild(item);
+        });
+        ragDocList.querySelectorAll('.rag-doc-delete').forEach(btn => {
+            btn.addEventListener("click", async () => {
+                const name = btn.dataset.name;
+                if (confirm(`Delete "${name}" from knowledge base?`)) {
+                    await deleteRagDocument(name);
+                    loadRagDocuments();
+                    toast("Document deleted", "success");
+                }
+            });
+        });
+    };
 }
 
 async function deleteRagDocument(name) {
-  const db = await openDB();
-  const chunksTx = db.transaction(STORE_NAME, 'readwrite');
-  const chunksStore = chunksTx.objectStore(STORE_NAME);
-  const index = chunksStore.index('source');
-  const request = index.openCursor(IDBKeyRange.only(name));
-  request.onsuccess = (event) => {
-    const cursor = event.target.result;
-    if (cursor) { cursor.delete(); cursor.continue(); }
-  };
-  const docsTx = db.transaction(DOCS_STORE, 'readwrite');
-  docsTx.objectStore(DOCS_STORE).delete(name);
-  return new Promise((resolve) => { chunksTx.oncomplete = () => resolve(); });
+    const db = await openDB();
+    const chunksTx = db.transaction(STORE_NAME, 'readwrite');
+    const chunksStore = chunksTx.objectStore(STORE_NAME);
+    const index = chunksStore.index('source');
+    const request = index.openCursor(IDBKeyRange.only(name));
+    request.onsuccess = (event) => {
+        const cursor = event.target.result;
+        if (cursor) { cursor.delete(); cursor.continue(); }
+    };
+    const docsTx = db.transaction(DOCS_STORE, 'readwrite');
+    docsTx.objectStore(DOCS_STORE).delete(name);
+    return new Promise((resolve) => { chunksTx.oncomplete = () => resolve(); });
 }
 
 if (ragClearAllBtn) ragClearAllBtn.addEventListener("click", async () => {
-  if (!confirm("Delete ALL documents from knowledge base?")) return;
-  const db = await openDB();
-  const chunksTx = db.transaction(STORE_NAME, 'readwrite');
-  chunksTx.objectStore(STORE_NAME).clear();
-  const docsTx = db.transaction(DOCS_STORE, 'readwrite');
-  docsTx.objectStore(DOCS_STORE).clear();
-  chunksTx.oncomplete = () => {
-    loadRagDocuments();
-    toast("All documents cleared", "success");
-  };
+    if (!confirm("Delete ALL documents from knowledge base?")) return;
+    const db = await openDB();
+    const chunksTx = db.transaction(STORE_NAME, 'readwrite');
+    chunksTx.objectStore(STORE_NAME).clear();
+    const docsTx = db.transaction(DOCS_STORE, 'readwrite');
+    docsTx.objectStore(DOCS_STORE).clear();
+    chunksTx.oncomplete = () => {
+        loadRagDocuments();
+        toast("All documents cleared", "success");
+    };
 });
 
 /* ============ API Call ============ */
 async function askOllama(promptText, images = []) {
-  appendMessage(promptText, "user", images);
-  const wrapper = appendMessage("", "assistant");
-  const msgDiv = wrapper.querySelector(".message");
-  msgDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
-  if (sendBtn) sendBtn.style.display = "none";
-  if (stopBtn) stopBtn.style.display = "inline-flex";
-  isGenerating = true;
-  currentAbortController = new AbortController();
-  
-  let accumulated = "";
-  let thinkingContent = "";
-  let finalPrompt = promptText;
-  let ragSources = [];
+    appendMessage(promptText, "user", images);
+    const wrapper = appendMessage("", "assistant");
+    const msgDiv = wrapper.querySelector(".message");
+    msgDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+    if (sendBtn) sendBtn.style.display = "none";
+    if (stopBtn) stopBtn.style.display = "inline-flex";
+    isGenerating = true;
+    currentAbortController = new AbortController();
 
-  if (ragEnabled) {
-    try {
-      toast("Searching knowledge base...", "info", 1500);
-      const { context, sources } = await queryRAG(promptText);
-      if (context) {
-        ragSources = sources;
-        finalPrompt = `Use the following context to answer the question. If the answer is not in the context, say you don't know.\n\nContext:\n${context}\n\nQuestion: ${promptText}`;
-      }
-    } catch (e) {
-      console.error("RAG error", e);
-      toast("RAG search failed: " + e.message, "error");
-    }
-  }
+    let accumulated = "";
+    let thinkingContent = "";
+    let finalPrompt = promptText;
+    let ragSources = [];
 
-  const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
-  const isOpenAIMode = cfgOpenaiMode ? cfgOpenaiMode.checked : false;
-  const apiKey = cfgApiKey ? cfgApiKey.value : "";
-  const conv = conversations[activeConvId];
-  
-  const messages = [];
-  if (cfgSystemPrompt && cfgSystemPrompt.value.trim()) messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
-  const history = conv.messages.slice(0, -1).slice(-10);
-  history.forEach(m => {
-    if (m.sender === "user" || m.sender === "assistant") messages.push({ role: m.sender, content: m.text });
-  });
-  messages.push({ role: "user", content: finalPrompt, images: images.length ? images : undefined });
-
-  let fetchUrl, fetchBody, fetchHeaders = { "Content-Type": "application/json" };
-  if (isOpenAIMode) {
-    fetchUrl = `${baseUrl}/v1/chat/completions`;
-    if (apiKey) fetchHeaders["Authorization"] = `Bearer ${apiKey}`;
-    fetchBody = { model: cfgModel ? cfgModel.value : "gpt-3.5-turbo", messages, temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, stream: cfgStream ? cfgStream.checked : true };
-  } else {
-    fetchUrl = `${baseUrl}/api/chat`;
-    fetchBody = { model: cfgModel ? cfgModel.value : "gemma4", messages, stream: cfgStream ? cfgStream.checked : true, options: { temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, num_ctx: cfgCtx ? parseInt(cfgCtx.value) : 4096 } };
-  }
-
-  try {
-    const res = await fetch(fetchUrl, {
-      method: "POST",
-      headers: fetchHeaders,
-      signal: currentAbortController.signal,
-      body: JSON.stringify(fetchBody)
-    });
-    if (!res.ok) throw new Error(`Server returned ${res.status}`);
-
-    if (cfgStream ? cfgStream.checked : true) {
-      const reader = res.body.getReader();
-      const decoder = new TextDecoder();
-      let buffer = "";
-      while (true) {
-        const { value, done } = await reader.read();
-        if (done) break;
-        buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n");
-        buffer = lines.pop();
-        for (const line of lines) {
-          if (!line.trim()) continue;
-          try {
-            if (isOpenAIMode) {
-              if (line.startsWith("data: ")) {
-                const jsonStr = line.substring(6);
-                if (jsonStr === "[DONE]") break;
-                const parsed = JSON.parse(jsonStr);
-                const delta = parsed.choices?.[0]?.delta?.content;
-                if (delta) {
-                  accumulated += delta;
-                  updateStreamingMessage(msgDiv, accumulated, thinkingContent);
-                }
-              }
-            } else {
-              const parsed = JSON.parse(line);
-              if (parsed.message?.thinking) thinkingContent += parsed.message.thinking;
-              if (parsed.message?.content) accumulated += parsed.message.content;
-              updateStreamingMessage(msgDiv, accumulated, thinkingContent);
-              if (parsed.done) break;
+    if (ragEnabled) {
+        try {
+            toast("Searching knowledge base...", "info", 1500);
+            const { context, sources } = await queryRAG(promptText);
+            if (context) {
+                ragSources = sources;
+                finalPrompt = `Use the following context to answer the question. If the answer is not in the context, say you don't know.\n\nContext:\n${context}\n\nQuestion: ${promptText}`;
             }
-          } catch { /* ignore partial JSON */ }
+        } catch (e) {
+            console.error("RAG error", e);
+            toast("RAG search failed: " + e.message, "error");
         }
-      }
-    } else {
-      const data = await res.json();
-      if (isOpenAIMode) { accumulated = data.choices?.[0]?.message?.content || ""; }
-      else { accumulated = data.message?.content || ""; thinkingContent = data.message?.thinking || ""; }
-      updateStreamingMessage(msgDiv, accumulated, thinkingContent, true);
     }
 
-    conv.messages[conv.messages.length - 1] = {
-      id: wrapper.dataset.msgId,
-      text: accumulated,
-      sender: "assistant",
-      images: [],
-      ts: Date.now(),
-      thinking: thinkingContent || null,
-      ragSources: ragSources.length > 0 ? ragSources : null
-    };
-    saveConversations();
-    updateTokenCounter();
-    if (cfgAutoTts && cfgAutoTts.checked && accumulated) speakText(accumulated);
+    const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
+    const isOpenAIMode = cfgOpenaiMode ? cfgOpenaiMode.checked : false;
+    const apiKey = cfgApiKey ? cfgApiKey.value : "";
+    const conv = conversations[activeConvId];
 
-    if (ragSources.length > 0) {
-      const sourcesDiv = document.createElement("div");
-      sourcesDiv.className = "rag-sources";
-      sourcesDiv.innerHTML = `<span class="rag-sources-title">📚 Sources:</span>`;
-      const uniqueSources = [...new Set(ragSources)];
-      uniqueSources.forEach(src => {
-        const pill = document.createElement("span");
-        pill.className = "rag-source-pill";
-        pill.textContent = src;
-        sourcesDiv.appendChild(pill);
-      });
-      wrapper.appendChild(sourcesDiv);
-    }
-  } catch (err) {
-    if (err.name === "AbortError") {
-      msgDiv.innerHTML = parseMarkdownToHtml(accumulated + "\n\n*[stopped]*");
-      conv.messages[conv.messages.length - 1] = {
-        id: wrapper.dataset.msgId,
-        text: accumulated,
-        sender: "assistant",
-        images: [],
-        ts: Date.now(),
-        thinking: thinkingContent || null
-      };
-      saveConversations();
-      toast("Generation stopped", "warning");
+    const messages = [];
+    if (cfgSystemPrompt && cfgSystemPrompt.value.trim()) messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
+    const history = conv.messages.slice(0, -1).slice(-10);
+    history.forEach(m => {
+        if (m.sender === "user" || m.sender === "assistant") messages.push({ role: m.sender, content: m.text });
+    });
+    messages.push({ role: "user", content: finalPrompt, images: images.length ? images : undefined });
+
+    let fetchUrl, fetchBody, fetchHeaders = { "Content-Type": "application/json" };
+    if (isOpenAIMode) {
+        fetchUrl = `${baseUrl}/v1/chat/completions`;
+        if (apiKey) fetchHeaders["Authorization"] = `Bearer ${apiKey}`;
+        fetchBody = { model: cfgModel ? cfgModel.value : "gpt-3.5-turbo", messages, temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, stream: cfgStream ? cfgStream.checked : true };
     } else {
-      msgDiv.innerHTML = `<span style="color:var(--error);">⚠️ ${escapeHtml(err.message)}</span>`;
-      toast("Error: " + err.message, "error");
+        fetchUrl = `${baseUrl}/api/chat`;
+        fetchBody = { model: cfgModel ? cfgModel.value : "gemma4", messages, stream: cfgStream ? cfgStream.checked : true, options: { temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, num_ctx: cfgCtx ? parseInt(cfgCtx.value) : 4096 } };
     }
-  } finally {
-    if (sendBtn) sendBtn.style.display = "inline-flex";
-    if (stopBtn) stopBtn.style.display = "none";
-    isGenerating = false;
-    currentAbortController = null;
-    currentImages = [];
-  }
+
+    try {
+        const res = await fetch(fetchUrl, {
+            method: "POST",
+            headers: fetchHeaders,
+            signal: currentAbortController.signal,
+            body: JSON.stringify(fetchBody)
+        });
+        if (!res.ok) throw new Error(`Server returned ${res.status}`);
+
+        if (cfgStream ? cfgStream.checked : true) {
+            const reader = res.body.getReader();
+            const decoder = new TextDecoder();
+            let buffer = "";
+            while (true) {
+                const { value, done } = await reader.read();
+                if (done) break;
+                buffer += decoder.decode(value, { stream: true });
+                const lines = buffer.split("\n");
+                buffer = lines.pop();
+                for (const line of lines) {
+                    if (!line.trim()) continue;
+                    try {
+                        if (isOpenAIMode) {
+                            if (line.startsWith("data: ")) {
+                                const jsonStr = line.substring(6);
+                                if (jsonStr === "[DONE]") break;
+                                const parsed = JSON.parse(jsonStr);
+                                const delta = parsed.choices?.[0]?.delta?.content;
+                                if (delta) {
+                                    accumulated += delta;
+                                    updateStreamingMessage(msgDiv, accumulated, thinkingContent);
+                                }
+                            }
+                        } else {
+                            const parsed = JSON.parse(line);
+                            if (parsed.message?.thinking) thinkingContent += parsed.message.thinking;
+                            if (parsed.message?.content) accumulated += parsed.message.content;
+                            updateStreamingMessage(msgDiv, accumulated, thinkingContent);
+                            if (parsed.done) break;
+                        }
+                    } catch { /* ignore partial JSON */ }
+                }
+            }
+        } else {
+            const data = await res.json();
+            if (isOpenAIMode) { accumulated = data.choices?.[0]?.message?.content || ""; }
+            else { accumulated = data.message?.content || ""; thinkingContent = data.message?.thinking || ""; }
+            updateStreamingMessage(msgDiv, accumulated, thinkingContent, true);
+        }
+
+        conv.messages[conv.messages.length - 1] = {
+            id: wrapper.dataset.msgId,
+            text: accumulated,
+            sender: "assistant",
+            images: [],
+            ts: Date.now(),
+            thinking: thinkingContent || null,
+            ragSources: ragSources.length > 0 ? ragSources : null
+        };
+        saveConversations();
+        updateTokenCounter();
+        if (cfgAutoTts && cfgAutoTts.checked && accumulated) speakText(accumulated);
+
+        if (ragSources.length > 0) {
+            const sourcesDiv = document.createElement("div");
+            sourcesDiv.className = "rag-sources";
+            sourcesDiv.innerHTML = `<span class="rag-sources-title">📚 Sources:</span>`;
+            const uniqueSources = [...new Set(ragSources)];
+            uniqueSources.forEach(src => {
+                const pill = document.createElement("span");
+                pill.className = "rag-source-pill";
+                pill.textContent = src;
+                sourcesDiv.appendChild(pill);
+            });
+            wrapper.appendChild(sourcesDiv);
+        }
+    } catch (err) {
+        if (err.name === "AbortError") {
+            msgDiv.innerHTML = parseMarkdownToHtml(accumulated + "\n\n*[stopped]*");
+            conv.messages[conv.messages.length - 1] = {
+                id: wrapper.dataset.msgId,
+                text: accumulated,
+                sender: "assistant",
+                images: [],
+                ts: Date.now(),
+                thinking: thinkingContent || null
+            };
+            saveConversations();
+            toast("Generation stopped", "warning");
+        } else {
+            msgDiv.innerHTML = `<span style="color:var(--error);">⚠️ ${escapeHtml(err.message)}</span>`;
+            toast("Error: " + err.message, "error");
+        }
+    } finally {
+        if (sendBtn) sendBtn.style.display = "inline-flex";
+        if (stopBtn) stopBtn.style.display = "none";
+        isGenerating = false;
+        currentAbortController = null;
+        currentImages = [];
+    }
 }
 
 function updateStreamingMessage(msgDiv, content, thinking, final = false) {
-  let html = "";
-  if (thinking && cfgShowThinking && cfgShowThinking.checked) {
-    html += `<details class="thinking-block" ${final ? "" : "open"}><summary>💭 Thinking...</summary><div>${parseMarkdownToHtml(thinking)}</div></details>`;
-  }
-  html += `<div class="message-content">${content ? parseMarkdownToHtml(content) : '<div class="typing-indicator"><span></span><span></span><span></span></div>'}</div>`;
-  msgDiv.innerHTML = html;
-  enhanceCodeBlocks(msgDiv);
-  autoScrollChat();
+    let html = "";
+    if (thinking && cfgShowThinking && cfgShowThinking.checked) {
+        html += `<details class="thinking-block" ${final ? "" : "open"}><summary>💭 Thinking...</summary><div>${parseMarkdownToHtml(thinking)}</div></details>`;
+    }
+    html += `<div class="message-content">${content ? parseMarkdownToHtml(content) : '<div class="typing-indicator"><span></span><span></span><span></span></div>'}</div>`;
+    msgDiv.innerHTML = html;
+    enhanceCodeBlocks(msgDiv);
+    autoScrollChat();
 }
 
-/* ============ Model fetching (DEBUGGABLE) ============ */
+/* ============ Model fetching ============ */
 async function fetchOllamaModels() {
-  console.log("[Models] Starting fetch...");
-  try {
-    let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
-    // Remove trailing slash safely
-    if (baseUrl.endsWith('/')) {
-      baseUrl = baseUrl.slice(0, -1);
-    }
-    
-    if (!baseUrl) { 
-      console.warn("[Models] No base URL provided.");
-      toast("Please enter a valid Server URL first.", "warning"); 
-      return; 
-    }
+    try {
+        let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        if (!baseUrl) { toast("Please enter a valid Server URL first.", "warning"); return; }
 
-    const url = `${baseUrl}/api/tags`;
-    console.log("[Models] Fetching from:", url);
+        const url = `${baseUrl}/api/tags`;
+        const res = await fetch(url);
+        if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+        const data = await res.json();
 
-    const res = await fetch(url);
-    
-    if (!res.ok) {
-      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    }
-    
-    const data = await res.json();
-    console.log("[Models] Received data:", data);
-    
-    // Clear existing options
-    if (cfgModel) cfgModel.innerHTML = "";
-    if (cfgRagModel) cfgRagModel.innerHTML = "";
-    
-    const defaultEmbed = "nomic-embed-text";
-    let hasDefaultEmbed = false;
+        if (cfgModel) cfgModel.innerHTML = "";
+        if (cfgRagModel) cfgRagModel.innerHTML = "";
 
-    if (data.models && data.models.length > 0) {
-      data.models.forEach(m => {
-        // Add to Main Model Select
-        if (cfgModel) {
-          const o = document.createElement("option");
-          o.value = m.name; 
-          o.textContent = m.name;
-          cfgModel.appendChild(o);
+        const defaultEmbed = "nomic-embed-text";
+        let hasDefaultEmbed = false;
+
+        if (data.models && data.models.length > 0) {
+            data.models.forEach(m => {
+                if (cfgModel) {
+                    const o = document.createElement("option");
+                    o.value = m.name; o.textContent = m.name;
+                    cfgModel.appendChild(o);
+                }
+                if (cfgRagModel) {
+                    const ragOpt = document.createElement("option");
+                    ragOpt.value = m.name; ragOpt.textContent = m.name;
+                    cfgRagModel.appendChild(ragOpt);
+                }
+                if (m.name === defaultEmbed) hasDefaultEmbed = true;
+            });
+
+            if (!hasDefaultEmbed && cfgRagModel) {
+                const ragOpt = document.createElement("option");
+                ragOpt.value = defaultEmbed;
+                ragOpt.textContent = `${defaultEmbed} (not installed)`;
+                cfgRagModel.prepend(ragOpt);
+            }
+
+            browser.storage.local.get(["selectedModel", "ragModel"]).then(res => {
+                if (res.selectedModel && cfgModel) cfgModel.value = res.selectedModel;
+                if (res.ragModel && cfgRagModel) cfgRagModel.value = res.ragModel;
+                else if (cfgRagModel) cfgRagModel.value = defaultEmbed;
+                if (currentModelTag && cfgModel) currentModelTag.innerText = cfgModel.value;
+            });
+
+            toast(`Loaded ${data.models.length} models`, "success");
+        } else {
+            toast("No models found. Click 'Pull' to download one.", "warning");
         }
-
-        // Add to RAG Model Select
-        if (cfgRagModel) {
-          const ragOpt = document.createElement("option");
-          ragOpt.value = m.name; 
-          ragOpt.textContent = m.name;
-          cfgRagModel.appendChild(ragOpt);
-        }
-
-        if (m.name === defaultEmbed) hasDefaultEmbed = true;
-      });
-
-      // Add default embedding model if not present
-      if (!hasDefaultEmbed && cfgRagModel) {
-        const ragOpt = document.createElement("option");
-        ragOpt.value = defaultEmbed;
-        ragOpt.textContent = `${defaultEmbed} (not installed)`;
-        cfgRagModel.prepend(ragOpt);
-      }
-
-      // Restore saved selections
-      browser.storage.local.get(["selectedModel", "ragModel"]).then(res => {
-        if (res.selectedModel && cfgModel) cfgModel.value = res.selectedModel;
-        if (res.ragModel && cfgRagModel) cfgRagModel.value = res.ragModel;
-        else if (cfgRagModel) cfgRagModel.value = defaultEmbed;
-        
-        if (currentModelTag && cfgModel) currentModelTag.innerText = cfgModel.value;
-      });
-
-      toast(`Loaded ${data.models.length} models`, "success");
-    } else {
-      console.warn("[Models] No models found in response.");
-      toast("No models found. Click 'Pull' to download one.", "warning");
+    } catch (e) {
+        toast(`Could not fetch models: ${e.message}`, "error");
     }
-  } catch (e) {
-    console.error("[Models] Fetch error:", e);
-    toast(`Could not fetch models: ${e.message}. Check Ollama is running.`, "error");
-  }
 }
 
 /* ============ Server status ============ */
 async function checkServerStatus() {
-  try {
-    let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
-    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
-    if (!baseUrl) return;
-    
-    const res = await fetch(`${baseUrl}/api/tags`);
-    if (res.ok) {
-      if (statusDot) statusDot.className = "status-dot online";
-      if (statusText) statusText.textContent = "Server online";
-    } else throw new Error();
-  } catch {
-    if (statusDot) statusDot.className = "status-dot offline";
-    if (statusText) statusText.textContent = "Server offline";
-  }
+    try {
+        let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
+        if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
+        if (!baseUrl) return;
+
+        const res = await fetch(`${baseUrl}/api/tags`);
+        if (res.ok) {
+            if (statusDot) statusDot.className = "status-dot online";
+            if (statusText) statusText.textContent = "Server online";
+        } else throw new Error();
+    } catch {
+        if (statusDot) statusDot.className = "status-dot offline";
+        if (statusText) statusText.textContent = "Server offline";
+    }
 }
 
 /* ============ Token Counter ============ */
 function updateTokenCounter() {
-  if (!tokenCounter) return;
-  const conv = conversations[activeConvId];
-  if (!conv || !conv.messages) {
-    tokenCounter.textContent = "~0 tokens";
-    if (messageCount) messageCount.textContent = "0 messages";
-    return;
-  }
-  let totalChars = 0;
-  conv.messages.forEach(m => { if (m.text) totalChars += m.text.length; });
-  const estimatedTokens = Math.round(totalChars / 4);
-  tokenCounter.textContent = `~${estimatedTokens} tokens`;
-  if (messageCount) messageCount.textContent = `${conv.messages.length} messages`;
+    if (!tokenCounter) return;
+    const conv = conversations[activeConvId];
+    if (!conv || !conv.messages) {
+        tokenCounter.textContent = "~0 tokens";
+        if (messageCount) messageCount.textContent = "0 messages";
+        return;
+    }
+    let totalChars = 0;
+    conv.messages.forEach(m => { if (m.text) totalChars += m.text.length; });
+    const estimatedTokens = Math.round(totalChars / 4);
+    tokenCounter.textContent = `~${estimatedTokens} tokens`;
+    if (messageCount) messageCount.textContent = `${conv.messages.length} messages`;
 }
 
 /* ============ Keyboard Shortcuts ============ */
 document.addEventListener("keydown", (e) => {
-  if (e.ctrlKey || e.metaKey) {
-    if (e.key === "n" || e.key === "N") { e.preventDefault(); createConversation(true); }
-    else if (e.key === "k" || e.key === "K") { e.preventDefault(); if (historyBtn) historyBtn.click(); }
-    else if (e.key === "e" || e.key === "E") { e.preventDefault(); if (exportBtn) exportBtn.click(); }
-    else if (e.key === ",") { e.preventDefault(); if (toggleSettingsBtn) toggleSettingsBtn.click(); }
-    else if (e.key === "/" || e.key === "?") { e.preventDefault(); if (shortcutsModal) shortcutsModal.classList.toggle("active"); }
-    else if (e.key === "r" || e.key === "R") { e.preventDefault(); if (ragToggleBtn) ragToggleBtn.click(); }
-  }
-  if (e.key === "Escape") {
-    if (imageModal) imageModal.classList.remove("active");
-    if (shortcutsModal) shortcutsModal.classList.remove("active");
-    if (historyModal) historyModal.classList.remove("active");
-    if (settingsModal) settingsModal.classList.remove("active");
-    if (isGenerating && currentAbortController) currentAbortController.abort();
-  }
+    if (e.ctrlKey || e.metaKey) {
+        if (e.key === "n" || e.key === "N") { e.preventDefault(); createConversation(true); }
+        else if (e.key === "k" || e.key === "K") { e.preventDefault(); if (historyBtn) historyBtn.click(); }
+        else if (e.key === "e" || e.key === "E") { e.preventDefault(); if (exportBtn) exportBtn.click(); }
+        else if (e.key === ",") { e.preventDefault(); if (toggleSettingsBtn) toggleSettingsBtn.click(); }
+        else if (e.key === "/" || e.key === "?") { e.preventDefault(); if (shortcutsModal) shortcutsModal.classList.toggle("active"); }
+        else if (e.key === "r" || e.key === "R") { e.preventDefault(); if (ragToggleBtn) ragToggleBtn.click(); }
+    }
+    if (e.key === "Escape") {
+        if (imageModal) imageModal.classList.remove("active");
+        if (shortcutsModal) shortcutsModal.classList.remove("active");
+        if (historyModal) historyModal.classList.remove("active");
+        if (settingsModal) settingsModal.classList.remove("active");
+        if (isGenerating && currentAbortController) currentAbortController.abort();
+    }
 });
 
 if (closeShortcuts) closeShortcuts.addEventListener("click", () => { if (shortcutsModal) shortcutsModal.classList.remove("active"); });
