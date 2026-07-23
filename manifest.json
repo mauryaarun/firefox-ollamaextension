@@ -1,55 +1,49 @@
 {
   "manifest_version": 3,
-  "name": "ChatAI🧠 Local Multimodal AI Assistant Sidebar",
-  "version": "3.2.4.2",
-  "description": "ChatAI🧠 is local multimodal AI assistant for Firefox with chat featuring vision, voice, RAG, and local Ollama & OpenAI compatible LLM provider.",
+  "name": "Local AI Workspace",
+  "version": "1.0.0",
+  "description": "Local AI assistant with RAG, multi-modal support, and advanced features",
+  "icons": {
+    "48": "icon.png",
+    "96": "icon.png"
+  },
   "permissions": [
+    "storage",
+    "tabs",
     "contextMenus",
     "activeTab",
+    "clipboardWrite"
+  ],
 
-    "storage",
-    "scripting",
-    "tabs"
+   "host_permissions": [
+    "http://localhost:*/",
+    "http://127.0.0.1:*/",
+    "<all_urls>"
   ],
-  "host_permissions": [
-    "http://localhost:11434/",
-    "http://127.0.0.1:11434/"
-  ],
+
   "background": {
     "scripts": ["background.js"]
   },
-  "action": {
-    "default_title": "Toggle ChatAI🧠 Sidebar",
-    "default_icon": {
-      "16": "icons/chatai16x16.png",
-      "32": "icons/chatai32x32.png",
-      "48": "icons/chatai48x48.png"
-    }
-  },
   "sidebar_action": {
-    "default_title": "ChatAI🧠",
+    "default_title": "Local AI",
     "default_panel": "sidebar.html",
-    "default_icon": "icons/chatai48x48.png",
-    "open_at_install": false
+    "default_icon": "icon.png"
   },
-  "commands": {
-    "_execute_sidebar_action": {
-      "suggested_key": {
-        "default": "Alt+Shift+A"
-      },
-      "description": "Toggle ChatAI🧠 Sidebar"
+  "action": {
+    "default_title": "Open Local AI Sidebar",
+    "default_icon": "icon.png"
+  },
+  "web_accessible_resources": [
+    {
+      "resources": [
+        "preview.html",
+        "rag-worker.js",
+        "lib/*"
+      ],
+      "matches": ["<all_urls>"]
     }
-  },
-  "icons": {
-    "16": "icons/chatai16x16.png",
-    "32": "icons/chatai32x32.png",
-    "48": "icons/chatai48x48.png",
-    "96": "icons/chatai96x96.png"
-  },
-  "browser_specific_settings": {
-    "gecko": {
-      "id": "ollama-multimodal-sidebar@local",
-      "strict_min_version": "130.0"
-    }
+  ],
+  "content_security_policy": {
+    "extension_pages": "script-src 'self' 'wasm-unsafe-eval'; object-src 'self'"
   }
 }

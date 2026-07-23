@@ -3,84 +3,89 @@ if (typeof pdfjsLib !== 'undefined') {
   pdfjsLib.GlobalWorkerOptions.workerSrc = browser.runtime.getURL('lib/pdfjs/pdf.worker.min.js');
 }
 
-/* ============ DOM refs ============ */
-const chatContainer     = document.getElementById("chat-container");
-const userInput         = document.getElementById("user-input");
-const sendBtn           = document.getElementById("send-btn");
-const stopBtn           = document.getElementById("stop-btn");
-const toggleSettingsBtn = document.getElementById("toggle-settings");
-const settingsModal     = document.getElementById("settings-modal");
-const closeSettings     = document.getElementById("close-settings");
-const btnFetchModels    = document.getElementById("btn-fetch-models");
-const cfgUrl            = document.getElementById("cfg-url");
-const cfgModel          = document.getElementById("cfg-model");
-const cfgSystemPrompt   = document.getElementById("cfg-system-prompt");
-const cfgTemp           = document.getElementById("cfg-temp");
-const cfgCtx            = document.getElementById("cfg-ctx");
-const cfgStream         = document.getElementById("cfg-stream");
-const tempVal           = document.getElementById("temp-val");
-const currentModelTag   = document.getElementById("current-model-tag");
-const filePicker        = document.getElementById("file-picker");
-const attachBtn         = document.getElementById("attach-btn");
-const previewZone       = document.getElementById("input-preview-zone");
-const clearBtn          = document.getElementById("clear-btn");
+/* ============ DOM refs (FIXED: Removed trailing spaces) ============ */
+const getEl = (id) => {
+  const el = document.getElementById(id);
+  if (!el) console.warn(`[DOM] Element with ID "${id}" not found.`);
+  return el;
+};
+
+const chatContainer     = getEl("chat-container");
+const userInput         = getEl("user-input");
+const sendBtn           = getEl("send-btn");
+const stopBtn           = getEl("stop-btn");
+const toggleSettingsBtn = getEl("toggle-settings");
+const settingsModal     = getEl("settings-modal");
+const closeSettings     = getEl("close-settings");
+const btnFetchModels    = getEl("btn-fetch-models");
+const cfgUrl            = getEl("cfg-url");
+const cfgModel          = getEl("cfg-model");
+const cfgSystemPrompt   = getEl("cfg-system-prompt");
+const cfgTemp           = getEl("cfg-temp");
+const cfgCtx            = getEl("cfg-ctx");
+const cfgStream         = getEl("cfg-stream");
+const tempVal           = getEl("temp-val");
+const currentModelTag   = getEl("current-model-tag");
+const filePicker        = getEl("file-picker");
+const attachBtn         = getEl("attach-btn");
+const previewZone       = getEl("input-preview-zone");
+const clearBtn          = getEl("clear-btn");
 const themeChips        = document.querySelectorAll(".theme-chip");
-const statusDot         = document.getElementById("status-indicator");
-const statusText        = document.getElementById("status-text");
-const tokenCounter      = document.getElementById("token-counter");
-const newConvBtn        = document.getElementById("new-conversation-btn");
-const exportBtn         = document.getElementById("export-btn");
-const exportMdBtn       = document.getElementById("export-md-btn");
-const importBtn         = document.getElementById("import-btn");
-const importFile        = document.getElementById("import-file");
-const cfgOpenaiMode     = document.getElementById("cfg-openai-mode");
-const cfgApiKey         = document.getElementById("cfg-api-key");
-const apiKeyGroup       = document.getElementById("api-key-group");
-const chatTitle         = document.getElementById("chat-title");
-const chatMeta          = document.getElementById("chat-meta");
-const emptyState        = document.getElementById("empty-state");
-const voiceBtn          = document.getElementById("voice-btn");
-const ttsToggleBtn      = document.getElementById("tts-toggle-btn");
-const promptTemplates   = document.getElementById("prompt-templates");
-const cfgShowThinking   = document.getElementById("cfg-show-thinking");
-const cfgAutoTts        = document.getElementById("cfg-auto-tts");
-const imageModal        = document.getElementById("image-modal");
-const modalImage        = document.getElementById("modal-image");
-const closeModal        = document.getElementById("close-modal");
-const shortcutsModal    = document.getElementById("shortcuts-modal");
-const closeShortcuts    = document.getElementById("close-shortcuts");
-const toastContainer    = document.getElementById("toast-container");
-const historyBtn        = document.getElementById("history-btn");
-const historyModal      = document.getElementById("history-modal");
-const historyList       = document.getElementById("history-list");
-const closeHistory      = document.getElementById("close-history");
-const searchInput       = document.getElementById("search-input");
+const statusDot         = getEl("status-indicator");
+const statusText        = getEl("status-text");
+const tokenCounter      = getEl("token-counter");
+const messageCount      = getEl("message-count"); // Added missing ref
+const newConvBtn        = getEl("new-conversation-btn");
+const exportBtn         = getEl("export-btn");
+const exportMdBtn       = getEl("export-md-btn");
+const importBtn         = getEl("import-btn");
+const importFile        = getEl("import-file");
+const cfgOpenaiMode     = getEl("cfg-openai-mode");
+const cfgApiKey         = getEl("cfg-api-key");
+const apiKeyGroup       = getEl("api-key-group");
+const chatTitle         = getEl("chat-title");
+const chatMeta          = getEl("chat-meta");
+const emptyState        = getEl("empty-state");
+const voiceBtn          = getEl("voice-btn");
+const ttsToggleBtn      = getEl("tts-toggle-btn");
+const promptTemplates   = getEl("prompt-templates");
+const cfgShowThinking   = getEl("cfg-show-thinking");
+const cfgAutoTts        = getEl("cfg-auto-tts");
+const imageModal        = getEl("image-modal");
+const modalImage        = getEl("modal-image");
+const closeModal        = getEl("close-modal");
+const shortcutsModal    = getEl("shortcuts-modal");
+const closeShortcuts    = getEl("close-shortcuts");
+const toastContainer    = getEl("toast-container");
+const historyBtn        = getEl("history-btn");
+const historyModal      = getEl("history-modal");
+const historyList       = getEl("history-list");
+const closeHistory      = getEl("close-history");
+const searchInput       = getEl("search-input");
 const fontSizeBtns      = document.querySelectorAll(".font-size-btn");
 
 // RAG DOM refs
-const cfgRagModel       = document.getElementById("cfg-rag-model");
-const cfgRagTopk        = document.getElementById("cfg-rag-topk");
-const cfgRagChunkSize   = document.getElementById("cfg-rag-chunk-size");
-const ragUrlInput       = document.getElementById("rag-url-input");
-const ragIndexUrlBtn    = document.getElementById("rag-index-url");
-const ragFileInput      = document.getElementById("rag-file-input");
-const ragIndexFileBtn   = document.getElementById("rag-index-file");
-const ragIndexStatus    = document.getElementById("rag-index-status");
-const ragDocList        = document.getElementById("rag-doc-list");
-const ragClearAllBtn    = document.getElementById("rag-clear-all");
-const ragToggleBtn      = document.getElementById("rag-toggle-btn");
-const ragStatus         = document.getElementById("rag-status");
+const cfgRagModel       = getEl("cfg-rag-model");
+const cfgRagTopk        = getEl("cfg-rag-topk");
+const cfgRagChunkSize   = getEl("cfg-rag-chunk-size");
+const ragUrlInput       = getEl("rag-url-input");
+const ragIndexUrlBtn    = getEl("rag-index-url");
+const ragFileInput      = getEl("rag-file-input");
+const ragIndexFileBtn   = getEl("rag-index-file");
+const ragIndexStatus    = getEl("rag-index-status");
+const ragDocList        = getEl("rag-doc-list");
+const ragClearAllBtn    = getEl("rag-clear-all");
+const ragToggleBtn      = getEl("rag-toggle-btn");
+const ragStatus         = getEl("rag-status");
 
 // Settings tabs
 const settingsTabs      = document.querySelectorAll(".settings-tab");
 const settingsTabContents = document.querySelectorAll(".settings-tab-content");
-const cfgPresetPrompt   = document.getElementById("cfg-preset-prompt");
-const btnPullModel      = document.getElementById("btn-pull-model");
-const pullModelUi       = document.getElementById("pull-model-ui");
-const pullModelName     = document.getElementById("pull-model-name");
-const btnConfirmPull    = document.getElementById("btn-confirm-pull");
-const pullProgress      = document.getElementById("pull-progress");
-const newConvBtnHistory = document.getElementById("new-conversation-btn-history");
+const cfgPresetPrompt   = getEl("cfg-preset-prompt");
+const pullModelName     = getEl("pull-model-name");
+const btnConfirmPull    = getEl("btn-confirm-pull");
+const pullProgress      = getEl("pull-progress");
+const newConvBtnHistory = getEl("new-conversation-btn-history");
 
 /* ============ State ============ */
 let currentImages = [];
@@ -93,14 +98,10 @@ let recognition = null;
 let isRecording = false;
 let ragEnabled = false;
 
-
-
 const DB_NAME = 'LocalAIRAG';
 const DB_VERSION = 2;
 const STORE_NAME = 'chunks';
 const DOCS_STORE = 'documents';
-
-
 
 const predefinedPrompts = {
   "default": "",
@@ -113,6 +114,7 @@ const predefinedPrompts = {
 
 /* ============ Toast System ============ */
 function toast(message, type = "info", duration = 3000) {
+  if (!toastContainer) return;
   const t = document.createElement("div");
   t.className = `toast ${type}`;
   t.textContent = message;
@@ -123,41 +125,17 @@ function toast(message, type = "info", duration = 3000) {
   }, duration);
 }
 
-/* ============ Settings Tabs ============
-settingsTabs.forEach(tab => {
-  tab.addEventListener("click", () => {
-    const targetTab = tab.dataset.tab;
-    settingsTabs.forEach(t => t.classList.remove("active"));
-    settingsTabContents.forEach(c => c.classList.remove("active"));
-    tab.classList.add("active");
-    document.querySelector(`[data-tab-content="${targetTab}"]`).classList.add("active");
-  });
-});
-
-*/
-
 /* ============ Settings Tabs ============ */
 settingsTabs.forEach(tab => {
   tab.addEventListener("click", () => {
     const targetTab = tab.dataset.tab;
-
-    // Remove active class from all tabs and contents
     settingsTabs.forEach(t => t.classList.remove("active"));
     settingsTabContents.forEach(c => c.classList.remove("active"));
-
-    // Add active class to clicked tab
     tab.classList.add("active");
-
-    // Find and activate the correct content panel safely
     const targetContent = document.querySelector(`[data-tab-content="${targetTab}"]`);
-    if (targetContent) {
-      targetContent.classList.add("active");
-    } else {
-      console.warn(`[Settings] Could not find content panel for tab: "${targetTab}". Check your HTML data-tab-content attributes.`);
-    }
+    if (targetContent) targetContent.classList.add("active");
   });
 });
-
 
 /* ============ Init ============ */
 browser.storage.local.get([
@@ -165,23 +143,30 @@ browser.storage.local.get([
   "stream", "conversations", "activeConvId", "openaiMode", "apiKey", "showThinking",
   "autoTts", "fontSize", "ragModel", "ragTopk", "ragChunkSize", "presetPrompt", "ragEnabled"
 ]).then((res) => {
+  console.log("[Init] Loaded storage:", res);
+  
   if (res.serverUrl) cfgUrl.value = res.serverUrl;
+  else cfgUrl.value = "http://localhost:11434"; // Default fallback
+
   if (res.theme) { applyTheme(res.theme); setActiveThemeChip(res.theme); }
   else { applyTheme("auto"); setActiveThemeChip("auto"); }
+  
   if (res.systemPrompt) cfgSystemPrompt.value = res.systemPrompt;
-  if (res.temperature) { cfgTemp.value = res.temperature; tempVal.textContent = res.temperature; }
+  if (res.temperature) { cfgTemp.value = res.temperature; if(tempVal) tempVal.textContent = res.temperature; }
   if (res.contextLength) cfgCtx.value = res.contextLength;
   if (typeof res.stream === "boolean") cfgStream.checked = res.stream;
-  if (res.openaiMode) { cfgOpenaiMode.checked = res.openaiMode; apiKeyGroup.style.display = "block"; }
+  if (res.openaiMode) { 
+    if(cfgOpenaiMode) cfgOpenaiMode.checked = res.openaiMode; 
+    if(apiKeyGroup) apiKeyGroup.style.display = "block"; 
+  }
   if (res.apiKey) cfgApiKey.value = res.apiKey;
-  if (res.showThinking) cfgShowThinking.checked = res.showThinking;
-  if (res.autoTts) cfgAutoTts.checked = res.autoTts;
-  
-  if (res.ragModel) cfgRagModel.value = res.ragModel;
-  if (res.ragTopk) cfgRagTopk.value = res.ragTopk;
-  if (res.ragChunkSize) cfgRagChunkSize.value = res.ragChunkSize;
+  if (res.showThinking && cfgShowThinking) cfgShowThinking.checked = res.showThinking;
+  if (res.autoTts && cfgAutoTts) cfgAutoTts.checked = res.autoTts;
+  if (res.ragModel && cfgRagModel) cfgRagModel.value = res.ragModel;
+  if (res.ragTopk && cfgRagTopk) cfgRagTopk.value = res.ragTopk;
+  if (res.ragChunkSize && cfgRagChunkSize) cfgRagChunkSize.value = res.ragChunkSize;
   if (res.ragEnabled) { ragEnabled = res.ragEnabled; updateRagToggleUI(); }
-  if (res.presetPrompt) cfgPresetPrompt.value = res.presetPrompt;
+  if (res.presetPrompt && cfgPresetPrompt) cfgPresetPrompt.value = res.presetPrompt;
   
   if (res.fontSize) {
     document.body.classList.add(`font-${res.fontSize}`);
@@ -192,32 +177,35 @@ browser.storage.local.get([
 
   conversations = res.conversations || {};
   activeConvId = res.activeConvId || null;
-  
+
   if (res.selectedModel) {
-    currentModelTag.innerText = res.selectedModel;
-    const opt = document.createElement("option");
-    opt.value = res.selectedModel; opt.textContent = res.selectedModel;
-    cfgModel.appendChild(opt); cfgModel.value = res.selectedModel;
+    if(currentModelTag) currentModelTag.innerText = res.selectedModel;
+    if(cfgModel) {
+      const opt = document.createElement("option");
+      opt.value = res.selectedModel; opt.textContent = res.selectedModel;
+      cfgModel.appendChild(opt); cfgModel.value = res.selectedModel;
+    }
   }
-  
+
   if (!activeConvId || !conversations[activeConvId]) {
     createConversation(true);
   } else {
     renderHistoryList();
     renderMessages();
   }
-  
+
+  // Fetch models after init
   fetchOllamaModels();
   checkServerStatus();
   setInterval(checkServerStatus, 30000);
-  
+
   browser.storage.local.get("pendingPrompt").then(r => {
     if (r.pendingPrompt) {
       handleIncomingPrompt(r.pendingPrompt);
       browser.storage.local.remove("pendingPrompt");
     }
   });
-  
+
   initVoiceRecognition();
   loadRagDocuments();
 });
@@ -248,25 +236,22 @@ themeChips.forEach(chip => {
 });
 
 /* ============ RAG Toggle ============ */
-ragToggleBtn.addEventListener("click", () => {
-  ragEnabled = !ragEnabled;
-  browser.storage.local.set({ ragEnabled });
-  updateRagToggleUI();
-  toast(ragEnabled ? "RAG enabled" : "RAG disabled", "info", 1500);
-});
+if (ragToggleBtn) {
+  ragToggleBtn.addEventListener("click", () => {
+    ragEnabled = !ragEnabled;
+    browser.storage.local.set({ ragEnabled });
+    updateRagToggleUI();
+    toast(ragEnabled ? "RAG enabled" : "RAG disabled", "info", 1500);
+  });
+}
 function updateRagToggleUI() {
-  if (ragEnabled) {
-    ragToggleBtn.classList.add("active");
-    ragToggleBtn.title = "RAG Enabled (click to disable)";
-    ragStatus.style.display = "inline";
-  } else {
-    ragToggleBtn.classList.remove("active");
-    ragToggleBtn.title = "RAG Disabled (click to enable)";
-    ragStatus.style.display = "none";
-  }
+  if (!ragToggleBtn || !ragStatus) return;
+  ragToggleBtn.classList.toggle("active", ragEnabled);
+  ragToggleBtn.title = ragEnabled ? "RAG Enabled (click to disable)" : "RAG Disabled (click to enable)";
+  ragStatus.style.display = ragEnabled ? "inline" : "none";
 }
 
-/* ============ Markdown Parser (Marked + DOMPurify) ============ */
+/* ============ Markdown Parser ============ */
 function parseMarkdownToHtml(md) {
   if (typeof marked === 'undefined') {
     return md.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/\n/g, '<br>');
@@ -278,76 +263,43 @@ function parseMarkdownToHtml(md) {
   }
   return html;
 }
-
 function escapeHtml(s) {
   if (!s) return "";
   return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
-
-
-
-/* ============ Syntax Highlighting & Code Block Enhancements ============ */
-
+/* ============ Code Block Enhancements ============ */
 function escapeRegExp(string) {
   return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
 }
 
 function openCodeEditor(block, pre, lang) {
-  const modal = document.createElement('div');
-  modal.className = 'modal active code-editor-modal';
-  modal.innerHTML = `
-  <div class="modal-content" style="max-width: 800px; height: 80vh;">
-  <div class="modal-header">
-  <h3>Edit Code (${lang})</h3>
-  <button class="modal-close-btn close-editor">✕</button>
-  </div>
-  <div class="modal-body" style="flex: 1; display: flex; flex-direction: column; padding: 16px; overflow: hidden;">
-  <textarea class="code-editor-textarea" style="flex: 1; width: 100%; background: var(--bg-surface); color: var(--fg); border: 1px solid var(--border); border-radius: 8px; padding: 12px; font-family: 'SF Mono', Monaco, Consolas, monospace; font-size: 13px; resize: none; line-height: 1.5;">${escapeHtml(block.innerText)}</textarea>
-  </div>
-  <div class="modal-footer">
-  <button class="action-btn cancel-editor">Cancel</button>
-  <button class="action-btn save-editor" style="background: var(--accent); color: var(--bg); border-color: var(--accent);">Save & Apply</button>
-  </div>
-  </div>
-  `;
-  document.body.appendChild(modal);
-
-  const close = () => modal.remove();
-  modal.querySelector('.close-editor').addEventListener('click', close);
-  modal.querySelector('.cancel-editor').addEventListener('click', close);
-  modal.addEventListener('click', (e) => { if (e.target === modal) close(); });
-
-  modal.querySelector('.save-editor').addEventListener('click', () => {
-    const newText = modal.querySelector('.code-editor-textarea').value;
-    const oldText = block.innerText;
-
-    // Update UI
-    block.innerText = newText;
-    if (typeof hljs !== 'undefined') {
-      block.classList.remove('hljs');
-      hljs.highlightElement(block);
-    }
-
-    // Update underlying markdown message
-    const msgWrapper = pre.closest('.message-wrapper');
-    if (msgWrapper) {
-      const msgId = msgWrapper.dataset.msgId;
-      const conv = conversations[activeConvId];
-      const msg = conv.messages.find(m => m.id === msgId);
-      if (msg) {
-        const regex = new RegExp(`(\`\`\`${lang}\\s*)${escapeRegExp(oldText)}(\\s*\`\`\`)`, 'm');
-        if (regex.test(msg.text)) {
-          msg.text = msg.text.replace(regex, `$1${newText}$2`);
-        } else {
-          msg.text = msg.text.replace(oldText, newText);
-        }
-        saveConversations();
-        toast("Code updated", "success", 1500);
+  const originalText = block.innerText;
+  const newText = prompt(`Edit Code (${lang})`, originalText);
+  if (newText === null || newText === originalText) return;
+  
+  block.innerText = newText;
+  if (typeof hljs !== 'undefined') {
+    block.classList.remove('hljs');
+    hljs.highlightElement(block);
+  }
+  
+  const msgWrapper = pre.closest('.message-wrapper');
+  if (msgWrapper) {
+    const msgId = msgWrapper.dataset.msgId;
+    const conv = conversations[activeConvId];
+    const msg = conv.messages.find(m => m.id === msgId);
+    if (msg) {
+      const regex = new RegExp(`(\`\`\`${lang}\\s*)${escapeRegExp(originalText)}(\\s*\`\`\`)`, 'm');
+      if (regex.test(msg.text)) {
+        msg.text = msg.text.replace(regex, `$1${newText}$2`);
+      } else {
+        msg.text = msg.text.replace(originalText, newText);
       }
+      saveConversations();
+      toast("Code updated", "success", 1500);
     }
-    close();
-  });
+  }
 }
 
 function enhanceCodeBlocks(container) {
@@ -358,12 +310,11 @@ function enhanceCodeBlocks(container) {
     const langClass = classes.find(c => c.startsWith('language-'));
     const lang = langClass ? langClass.replace('language-', '') : 'text';
     pre.setAttribute('data-lang', lang);
-
+    
     if (!pre.querySelector('.code-block-actions')) {
       const actions = document.createElement('div');
       actions.className = 'code-block-actions';
-
-      // 1. Copy
+      
       const copyBtn = document.createElement('button');
       copyBtn.className = 'code-action-btn';
       copyBtn.textContent = '📋 Copy';
@@ -374,15 +325,13 @@ function enhanceCodeBlocks(container) {
         });
       });
       actions.appendChild(copyBtn);
-
-      // 2. Edit
+      
       const editBtn = document.createElement('button');
       editBtn.className = 'code-action-btn';
       editBtn.textContent = '✏️ Edit';
       editBtn.addEventListener('click', () => openCodeEditor(block, pre, lang));
       actions.appendChild(editBtn);
-
-      // 3. Download
+      
       const downloadBtn = document.createElement('button');
       downloadBtn.className = 'code-action-btn';
       downloadBtn.textContent = '⬇️ Download';
@@ -396,28 +345,19 @@ function enhanceCodeBlocks(container) {
         URL.revokeObjectURL(url);
       });
       actions.appendChild(downloadBtn);
-
-      // 4. Preview (HTML/SVG only)
-      // 4. Preview (HTML/SVG only)
+      
       if (['html', 'htm', 'svg'].includes(lang.toLowerCase())) {
         const previewBtn = document.createElement('button');
         previewBtn.className = 'code-action-btn';
         previewBtn.textContent = '👁️ Preview';
-
         previewBtn.addEventListener('click', async () => {
           const htmlContent = block.innerText;
-
-          // Generate a unique ID for this specific preview session
           const previewId = 'preview_' + Date.now();
-
           try {
-            // 1. Store HTML in extension local storage (shared across all extension contexts)
             await browser.storage.local.set({
               [`preview_data_${previewId}`]: htmlContent,
               [`preview_time_${previewId}`]: Date.now()
             });
-
-            // 2. Open the dedicated preview page, passing the unique ID in the URL
             const previewUrl = browser.runtime.getURL(`preview.html?id=${previewId}`);
             if (typeof browser !== 'undefined' && browser.tabs) {
               browser.tabs.create({ url: previewUrl });
@@ -426,16 +366,13 @@ function enhanceCodeBlocks(container) {
             }
           } catch (e) {
             console.error("Preview storage error:", e);
-            toast("Preview failed: Content too large or storage error", "error");
+            toast("Preview failed: Content too large", "error");
           }
         });
-
         actions.appendChild(previewBtn);
       }
-
       pre.prepend(actions);
     }
-
     if (!block.classList.contains('hljs') && typeof hljs !== 'undefined') {
       hljs.highlightElement(block);
     }
@@ -444,6 +381,7 @@ function enhanceCodeBlocks(container) {
 
 /* ============ Auto-Scroll ============ */
 function autoScrollChat() {
+  if (!chatContainer) return;
   const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
   if (isNearBottom) chatContainer.scrollTop = chatContainer.scrollHeight;
 }
@@ -458,6 +396,7 @@ function createConversation(switchTo = true) {
   renderMessages();
   toast("New conversation created");
 }
+
 function switchConversation(id) {
   if (isGenerating) return;
   activeConvId = id;
@@ -465,28 +404,31 @@ function switchConversation(id) {
   renderHistoryList();
   renderMessages();
 }
+
 function renameConversation(id, e) {
-  e.stopPropagation();
+  if (e) e.stopPropagation();
   const conv = conversations[id];
   const newName = prompt("Rename conversation:", conv.title);
   if (newName && newName.trim()) {
     conv.title = newName.trim();
     saveConversations();
     renderHistoryList();
-    if (id === activeConvId) chatTitle.textContent = conv.title;
+    if (id === activeConvId && chatTitle) chatTitle.textContent = conv.title;
     toast("Conversation renamed", "success");
   }
 }
+
 function pinConversation(id, e) {
-  e.stopPropagation();
+  if (e) e.stopPropagation();
   const conv = conversations[id];
   conv.pinned = !conv.pinned;
   saveConversations();
   renderHistoryList();
   toast(conv.pinned ? "Conversation pinned 📌" : "Unpinned");
 }
+
 function deleteConversation(id, e) {
-  e.stopPropagation();
+  if (e) e.stopPropagation();
   if (!confirm("Delete this conversation?")) return;
   delete conversations[id];
   if (activeConvId === id) {
@@ -500,12 +442,14 @@ function deleteConversation(id, e) {
   renderMessages();
   toast("Conversation deleted", "warning");
 }
+
 function saveConversations() { browser.storage.local.set({ conversations, activeConvId }); }
 
 function renderHistoryList() {
+  if (!historyList) return;
   historyList.innerHTML = "";
   const allConvs = Object.values(conversations).sort((a, b) => (b.pinned === a.pinned ? b.createdAt - a.createdAt : b.pinned ? 1 : -1));
-  const searchTerm = searchInput.value.toLowerCase();
+  const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
   const filtered = allConvs.filter(c => {
     if (!searchTerm) return true;
     if (c.title.toLowerCase().includes(searchTerm)) return true;
@@ -520,11 +464,17 @@ function renderHistoryList() {
   filtered.forEach(c => {
     const item = document.createElement("div");
     item.className = "history-item" + (c.id === activeConvId ? " active" : "");
-    item.innerHTML = `<div class="history-item-title">${c.pinned ? '📌 ' : ''}${escapeHtml(c.title)}</div><div class="history-item-actions"><button data-action="pin" title="${c.pinned ? 'Unpin' : 'Pin'}">${c.pinned ? '📌' : '📍'}</button><button data-action="rename" title="Rename">✏️</button><button data-action="delete" title="Delete">🗑️</button></div>`;
+    item.innerHTML = `
+      <div class="history-item-title">${c.pinned ? '📌 ' : ''}${escapeHtml(c.title)}</div>
+      <div class="history-item-actions">
+        <button data-action="pin" title="${c.pinned ? 'Unpin' : 'Pin'}">${c.pinned ? '📌' : '📍'}</button>
+        <button data-action="rename" title="Rename">✏️</button>
+        <button data-action="delete" title="Delete">🗑️</button>
+      </div>`;
     item.addEventListener("click", (e) => {
       if (e.target.closest('.history-item-actions')) return;
       switchConversation(c.id);
-      historyModal.classList.remove('active');
+      if (historyModal) historyModal.classList.remove('active');
     });
     item.querySelector('[data-action="pin"]').addEventListener("click", (e) => { e.stopPropagation(); pinConversation(c.id, e); });
     item.querySelector('[data-action="rename"]').addEventListener("click", (e) => { e.stopPropagation(); renameConversation(c.id, e); });
@@ -533,58 +483,65 @@ function renderHistoryList() {
   });
 }
 
-newConvBtn.addEventListener("click", () => { createConversation(true); historyModal.classList.remove('active'); });
-newConvBtnHistory.addEventListener("click", () => { createConversation(true); historyModal.classList.remove('active'); });
-historyBtn.addEventListener("click", () => { renderHistoryList(); historyModal.classList.add('active'); });
-closeHistory.addEventListener("click", () => historyModal.classList.remove('active'));
-searchInput.addEventListener("input", renderHistoryList);
+if (newConvBtn) newConvBtn.addEventListener("click", () => { createConversation(true); if (historyModal) historyModal.classList.remove('active'); });
+if (newConvBtnHistory) newConvBtnHistory.addEventListener("click", () => { createConversation(true); if (historyModal) historyModal.classList.remove('active'); });
+if (historyBtn) historyBtn.addEventListener("click", () => { renderHistoryList(); if (historyModal) historyModal.classList.add('active'); });
+if (closeHistory) closeHistory.addEventListener("click", () => { if (historyModal) historyModal.classList.remove('active'); });
+if (searchInput) searchInput.addEventListener("input", renderHistoryList);
 
 /* ============ Rendering ============ */
 function renderMessages() {
+  if (!chatContainer) return;
   chatContainer.innerHTML = "";
   const conv = conversations[activeConvId];
   if (!conv) return;
-  chatTitle.textContent = conv.title;
-  chatMeta.innerHTML = `${conv.messages.length} messages · <span>${tokenCounter.textContent || '~0 tokens'}</span>`;
+  
+  if (chatTitle) chatTitle.textContent = conv.title;
+  if (messageCount) messageCount.textContent = `${conv.messages.length} messages`;
   
   if (conv.messages.length === 0) {
-    const empty = emptyState.cloneNode(true);
-    empty.style.display = "flex";
-    chatContainer.appendChild(empty);
-    empty.querySelectorAll(".quick-btn").forEach(btn => {
-      btn.addEventListener("click", () => { userInput.value = btn.dataset.prompt; userInput.focus(); autoResizeTextarea(); });
-    });
+    if (emptyState) {
+      const empty = emptyState.cloneNode(true);
+      empty.style.display = "flex";
+      chatContainer.appendChild(empty);
+      empty.querySelectorAll(".quick-btn").forEach(btn => {
+        btn.addEventListener("click", () => {
+          if(userInput) userInput.value = btn.dataset.prompt;
+          if(userInput) userInput.focus();
+          autoResizeTextarea();
+        });
+      });
+    }
     return;
   }
   
-  conv.messages.forEach(m => appendMessage(m.text, m.sender, m.images, false, m.id, m.ts, m.thinking));
+  conv.messages.forEach(m => appendMessage(m.text, m.sender, m.images, false, m.id, m.ts, m.thinking, m.ragSources));
   updateTokenCounter();
   setTimeout(autoScrollChat, 50);
 }
-
 
 function appendMessage(text, sender, images = [], save = true, existingId = null, timestamp = null, thinking = null, ragSources = null) {
   const wrapper = document.createElement("div");
   wrapper.classList.add("message-wrapper", sender);
   const msgId = existingId || "msg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
   wrapper.dataset.msgId = msgId;
-
+  
   const msg = document.createElement("div");
   msg.classList.add("message");
-
-  if (thinking && cfgShowThinking.checked) {
+  
+  if (thinking && cfgShowThinking && cfgShowThinking.checked) {
     const thinkBlock = document.createElement("details");
     thinkBlock.className = "thinking-block";
     thinkBlock.innerHTML = `<summary>💭 Thinking process</summary><div>${parseMarkdownToHtml(thinking)}</div>`;
     msg.appendChild(thinkBlock);
   }
-
+  
   const contentDiv = document.createElement("div");
   contentDiv.className = "message-content";
   contentDiv.innerHTML = sender === "user" ? escapeHtml(text).replace(/\n/g, "<br>") : parseMarkdownToHtml(text);
   msg.appendChild(contentDiv);
   wrapper.appendChild(msg);
-
+  
   if (images && images.length > 0) {
     images.forEach(imgBase64 => {
       const imgEl = document.createElement("img");
@@ -596,8 +553,7 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
       msg.appendChild(imgEl);
     });
   }
-
-  // Render RAG Sources if they exist
+  
   if (ragSources && ragSources.length > 0) {
     const sourcesDiv = document.createElement("div");
     sourcesDiv.className = "rag-sources";
@@ -611,45 +567,43 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
     });
     wrapper.appendChild(sourcesDiv);
   }
-
+  
   const time = document.createElement("div");
   time.className = "message-time";
   time.textContent = new Date(timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
   wrapper.appendChild(time);
-
+  
   const actions = document.createElement("div");
   actions.className = "bubble-actions";
   const copyBtn = mkBtn("📋 Copy", () => {
     navigator.clipboard.writeText(msg.innerText).then(() => toast("Copied!", "success", 1200));
   });
   actions.appendChild(copyBtn);
-
+  
   if (sender === "user") {
     actions.appendChild(mkBtn("✏️ Edit", () => editAndResend(msgId)));
   } else {
     actions.appendChild(mkBtn("🔄 Regen", () => regenerate(msgId)));
     actions.appendChild(mkBtn("🔊 Read", () => speakText(text)));
   }
+  
   wrapper.appendChild(actions);
-
   chatContainer.appendChild(wrapper);
   enhanceCodeBlocks(msg);
   autoScrollChat();
-
+  
   if (save) {
     const conv = conversations[activeConvId];
     conv.messages.push({
-      id: msgId,
-      text,
-      sender,
+      id: msgId, text, sender,
       images: images || [],
       ts: timestamp || Date.now(),
-                       thinking: thinking || null,
-                       ragSources: ragSources || null
+      thinking: thinking || null,
+      ragSources: ragSources || null
     });
     if (sender === "user" && conv.messages.filter(m => m.sender === "user").length === 1) {
       conv.title = text.slice(0, 40) + (text.length > 40 ? "…" : "");
-      chatTitle.textContent = conv.title;
+      if (chatTitle) chatTitle.textContent = conv.title;
       renderHistoryList();
     }
     saveConversations();
@@ -660,12 +614,13 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
 
 function mkBtn(label, handler) {
   const b = document.createElement("span");
-  b.className = "action-link"; b.textContent = label; 
+  b.className = "action-link";
+  b.textContent = label;
   b.addEventListener("click", handler);
   return b;
 }
 
-function editAndResend(msgId) {
+async function editAndResend(msgId) {
   const conv = conversations[activeConvId];
   const idx = conv.messages.findIndex(m => m.id === msgId);
   if (idx < 0) return;
@@ -673,8 +628,10 @@ function editAndResend(msgId) {
   const newText = prompt("Edit message:", original.text);
   if (newText === null || newText.trim() === "") return;
   conv.messages = conv.messages.slice(0, idx);
-  saveConversations(); renderMessages();
-  userInput.value = newText; sendBtn.click();
+  saveConversations();
+  renderMessages();
+  if(userInput) userInput.value = newText;
+  if(sendBtn) sendBtn.click();
 }
 
 function regenerate(msgId) {
@@ -682,13 +639,14 @@ function regenerate(msgId) {
   const idx = conv.messages.findIndex(m => m.id === msgId);
   if (idx < 0) return;
   conv.messages = conv.messages.slice(0, idx);
-  saveConversations(); renderMessages();
+  saveConversations();
+  renderMessages();
   const lastUser = [...conv.messages].reverse().find(m => m.sender === "user");
   if (lastUser) askOllama(lastUser.text, lastUser.images);
 }
 
 /* ============ Export / Import ============ */
-exportBtn.addEventListener("click", () => {
+if (exportBtn) exportBtn.addEventListener("click", () => {
   const conv = conversations[activeConvId];
   if (!conv || conv.messages.length === 0) return toast("No messages to export", "warning");
   const dataStr = JSON.stringify(conv, null, 2);
@@ -697,7 +655,7 @@ exportBtn.addEventListener("click", () => {
   toast("Exported as JSON", "success");
 });
 
-exportMdBtn.addEventListener("click", () => {
+if (exportMdBtn) exportMdBtn.addEventListener("click", () => {
   const conv = conversations[activeConvId];
   if (!conv || conv.messages.length === 0) return toast("No messages to export", "warning");
   let md = `# ${conv.title}\n\n*Exported: ${new Date().toLocaleString()}*\n\n---\n\n`;
@@ -713,12 +671,15 @@ exportMdBtn.addEventListener("click", () => {
 
 function downloadBlob(blob, filename) {
   const a = document.createElement("a");
-  a.href = URL.createObjectURL(blob); a.download = filename; a.click(); URL.revokeObjectURL(a.href);
+  a.href = URL.createObjectURL(blob);
+  a.download = filename;
+  a.click();
+  URL.revokeObjectURL(a.href);
 }
 function sanitizeFilename(name) { return name.replace(/[^a-z0-9]/gi, '_').substring(0, 50); }
 
-importBtn.addEventListener("click", () => importFile.click());
-importFile.addEventListener("change", async (e) => {
+if (importBtn) importBtn.addEventListener("click", () => importFile.click());
+if (importFile) importFile.addEventListener("change", async (e) => {
   const file = e.target.files[0];
   if (!file) return;
   const text = await file.text();
@@ -732,123 +693,125 @@ importFile.addEventListener("change", async (e) => {
     }
     importedData.id = "conv" + Date.now();
     conversations[importedData.id] = importedData;
-    saveConversations(); switchConversation(importedData.id);
+    saveConversations();
+    switchConversation(importedData.id);
     toast("Chat imported successfully!", "success");
-  } catch (err) { toast("Failed to import: " + err.message, "error"); }
+  } catch (err) {
+    toast("Failed to import: " + err.message, "error");
+  }
   e.target.value = "";
 });
 
 /* ============ Event Listeners ============ */
-clearBtn.addEventListener("click", () => {
+if (clearBtn) clearBtn.addEventListener("click", () => {
   if (!confirm("Clear current chat?")) return;
   conversations[activeConvId].messages = [];
   conversations[activeConvId].title = "New Chat";
-  saveConversations(); renderMessages(); renderHistoryList();
+  saveConversations();
+  renderMessages();
+  renderHistoryList();
   toast("Chat cleared");
 });
 
-toggleSettingsBtn.addEventListener("click", () => settingsModal.classList.add('active'));
-closeSettings.addEventListener("click", () => settingsModal.classList.remove('active'));
-settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) settingsModal.classList.remove('active'); });
+if (toggleSettingsBtn) toggleSettingsBtn.addEventListener("click", () => { if (settingsModal) settingsModal.classList.add('active'); });
+if (closeSettings) closeSettings.addEventListener("click", () => { if (settingsModal) settingsModal.classList.remove('active'); });
+if (settingsModal) settingsModal.addEventListener("click", (e) => { if (e.target === settingsModal) settingsModal.classList.remove('active'); });
 
-cfgOpenaiMode.addEventListener("change", () => {
-  apiKeyGroup.style.display = cfgOpenaiMode.checked ? "block" : "none";
+if (cfgOpenaiMode) cfgOpenaiMode.addEventListener("change", () => {
+  if (apiKeyGroup) apiKeyGroup.style.display = cfgOpenaiMode.checked ? "block" : "none";
   browser.storage.local.set({ openaiMode: cfgOpenaiMode.checked });
 });
-cfgApiKey.addEventListener("change", () => browser.storage.local.set({ apiKey: cfgApiKey.value }));
-cfgShowThinking.addEventListener("change", () => browser.storage.local.set({ showThinking: cfgShowThinking.checked }));
-cfgAutoTts.addEventListener("change", () => browser.storage.local.set({ autoTts: cfgAutoTts.checked }));
+if (cfgApiKey) cfgApiKey.addEventListener("change", () => browser.storage.local.set({ apiKey: cfgApiKey.value }));
+if (cfgShowThinking) cfgShowThinking.addEventListener("change", () => browser.storage.local.set({ showThinking: cfgShowThinking.checked }));
+if (cfgAutoTts) cfgAutoTts.addEventListener("change", () => browser.storage.local.set({ autoTts: cfgAutoTts.checked }));
 
-btnFetchModels.addEventListener("click", fetchOllamaModels);
-cfgModel.addEventListener("change", () => {
+if (btnFetchModels) btnFetchModels.addEventListener("click", fetchOllamaModels);
+if (cfgModel) cfgModel.addEventListener("change", () => {
   browser.storage.local.set({ selectedModel: cfgModel.value });
-  currentModelTag.innerText = cfgModel.value;
+  if (currentModelTag) currentModelTag.innerText = cfgModel.value;
 });
-cfgUrl.addEventListener("change", () => browser.storage.local.set({ serverUrl: cfgUrl.value }));
-cfgSystemPrompt.addEventListener("change", () => browser.storage.local.set({ systemPrompt: cfgSystemPrompt.value }));
-cfgTemp.addEventListener("input", () => {
-  tempVal.textContent = cfgTemp.value;
+if (cfgUrl) cfgUrl.addEventListener("change", () => browser.storage.local.set({ serverUrl: cfgUrl.value }));
+if (cfgSystemPrompt) cfgSystemPrompt.addEventListener("change", () => browser.storage.local.set({ systemPrompt: cfgSystemPrompt.value }));
+if (cfgTemp) cfgTemp.addEventListener("input", () => {
+  if (tempVal) tempVal.textContent = cfgTemp.value;
   browser.storage.local.set({ temperature: parseFloat(cfgTemp.value) });
 });
-cfgCtx.addEventListener("change", () => browser.storage.local.set({ contextLength: parseInt(cfgCtx.value) }));
-cfgStream.addEventListener("change", () => browser.storage.local.set({ stream: cfgStream.checked }));
+if (cfgCtx) cfgCtx.addEventListener("change", () => browser.storage.local.set({ contextLength: parseInt(cfgCtx.value) }));
+if (cfgStream) cfgStream.addEventListener("change", () => browser.storage.local.set({ stream: cfgStream.checked }));
 
-// RAG Settings Listeners
-cfgRagModel.addEventListener("change", () => browser.storage.local.set({ ragModel: cfgRagModel.value }));
-cfgRagTopk.addEventListener("change", () => browser.storage.local.set({ ragTopk: parseInt(cfgRagTopk.value) }));
-cfgRagChunkSize.addEventListener("change", () => browser.storage.local.set({ ragChunkSize: parseInt(cfgRagChunkSize.value) }));
+// RAG Settings
+if (cfgRagModel) cfgRagModel.addEventListener("change", () => browser.storage.local.set({ ragModel: cfgRagModel.value }));
+if (cfgRagTopk) cfgRagTopk.addEventListener("change", () => browser.storage.local.set({ ragTopk: parseInt(cfgRagTopk.value) }));
+if (cfgRagChunkSize) cfgRagChunkSize.addEventListener("change", () => browser.storage.local.set({ ragChunkSize: parseInt(cfgRagChunkSize.value) }));
 
-cfgPresetPrompt.addEventListener("change", () => {
+if (cfgPresetPrompt) cfgPresetPrompt.addEventListener("change", () => {
   const val = cfgPresetPrompt.value;
   browser.storage.local.set({ presetPrompt: val });
-  if (predefinedPrompts[val] !== undefined) {
+  if (predefinedPrompts[val] !== undefined && cfgSystemPrompt) {
     cfgSystemPrompt.value = predefinedPrompts[val];
     browser.storage.local.set({ systemPrompt: cfgSystemPrompt.value });
   }
 });
 
-// Pull Model UI
-btnPullModel.addEventListener("click", () => {
-  pullModelUi.style.display = pullModelUi.style.display === "none" ? "block" : "none";
-});
-btnConfirmPull.addEventListener("click", async () => {
-  const modelName = pullModelName.value.trim();
+// Pull Model
+if (btnConfirmPull) btnConfirmPull.addEventListener("click", async () => {
+  const modelName = pullModelName ? pullModelName.value.trim() : "";
   if (!modelName) return toast("Enter a model name", "warning");
-  btnConfirmPull.disabled = true;
-  pullProgress.textContent = "Starting pull...";
+  if (btnConfirmPull) btnConfirmPull.disabled = true;
+  if (pullProgress) pullProgress.textContent = "Starting pull...";
   browser.runtime.sendMessage({
     action: "pull-model",
-    baseUrl: cfgUrl.value.trim().replace(/\/$/, ""),
-    modelName: modelName
+    baseUrl: cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "",
+    modelName
   });
 });
 
 browser.runtime.onMessage.addListener((msg) => {
   if (msg.action === "pull-progress") {
-    if (msg.data.status) pullProgress.textContent = msg.data.status;
-    if (msg.data.total && msg.data.completed) {
+    if (msg.data.status && pullProgress) pullProgress.textContent = msg.data.status;
+    if (msg.data.total && msg.data.completed && pullProgress) {
       const pct = ((msg.data.completed / msg.data.total) * 100).toFixed(1);
       pullProgress.textContent += ` (${pct}%)`;
     }
   } else if (msg.action === "pull-complete") {
-    pullProgress.textContent = "✅ Pull complete! Fetching models...";
-    btnConfirmPull.disabled = false;
+    if (pullProgress) pullProgress.textContent = "✅ Pull complete! Fetching models...";
+    if (btnConfirmPull) btnConfirmPull.disabled = false;
     fetchOllamaModels();
-    setTimeout(() => { pullModelUi.style.display = "none"; }, 2000);
+    setTimeout(() => { if (pullProgress) pullProgress.textContent = ""; }, 2000);
   } else if (msg.action === "pull-error") {
-    pullProgress.textContent = `❌ Error: ${msg.error}`;
-    btnConfirmPull.disabled = false;
+    if (pullProgress) pullProgress.textContent = `❌ Error: ${msg.error}`;
+    if (btnConfirmPull) btnConfirmPull.disabled = false;
   }
 });
 
 // RAG Indexing
-ragIndexUrlBtn.addEventListener("click", async () => {
-  const url = ragUrlInput.value.trim();
+if (ragIndexUrlBtn) ragIndexUrlBtn.addEventListener("click", async () => {
+  const url = ragUrlInput ? ragUrlInput.value.trim() : "";
   if (!url) return toast("Enter a URL", "warning");
-  ragIndexStatus.textContent = "Fetching URL...";
+  if (ragIndexStatus) ragIndexStatus.textContent = "Fetching URL...";
   try {
     const res = await browser.runtime.sendMessage({ action: "fetch-url-text", url });
     if (res.error) throw new Error(res.error);
     if (!res.text || res.text.length < 50) throw new Error("No text content found");
-    ragIndexStatus.textContent = "Indexing content...";
+    if (ragIndexStatus) ragIndexStatus.textContent = "Indexing content...";
     await indexContent(url, res.text);
-    ragIndexStatus.textContent = `✅ Indexed ${url}`;
-    ragUrlInput.value = "";
+    if (ragIndexStatus) ragIndexStatus.textContent = `✅ Indexed ${url}`;
+    if (ragUrlInput) ragUrlInput.value = "";
     toast("URL indexed successfully!", "success");
     loadRagDocuments();
   } catch (e) {
-    ragIndexStatus.textContent = `❌ ${e.message}`;
+    if (ragIndexStatus) ragIndexStatus.textContent = `❌ ${e.message}`;
     toast("Indexing failed: " + e.message, "error");
   }
 });
 
-ragIndexFileBtn.addEventListener("click", async () => {
-  const files = Array.from(ragFileInput.files);
+if (ragIndexFileBtn) ragIndexFileBtn.addEventListener("click", async () => {
+  const files = ragFileInput ? Array.from(ragFileInput.files) : [];
   if (files.length === 0) return toast("Select files", "warning");
-  ragIndexStatus.textContent = "Processing files...";
+  if (ragIndexStatus) ragIndexStatus.textContent = "Processing files...";
   try {
     for (const file of files) {
-      ragIndexStatus.textContent = `Processing ${file.name}...`;
+      if (ragIndexStatus) ragIndexStatus.textContent = `Processing ${file.name}...`;
       let text = "";
       if (file.type === "application/pdf") {
         text = await extractTextFromPDF(file);
@@ -857,25 +820,21 @@ ragIndexFileBtn.addEventListener("click", async () => {
       } else {
         text = await file.text();
       }
-      if (!text || text.length < 50) {
-        throw new Error(`No extractable text from ${file.name}`);
-      }
+      if (!text || text.length < 50) throw new Error(`No extractable text from ${file.name}`);
       await indexContent(file.name, text);
     }
-    ragIndexStatus.textContent = `✅ Indexed ${files.length} file(s)`;
-    ragFileInput.value = "";
+    if (ragIndexStatus) ragIndexStatus.textContent = `✅ Indexed ${files.length} file(s)`;
+    if (ragFileInput) ragFileInput.value = "";
     toast("Files indexed successfully!", "success");
     loadRagDocuments();
   } catch (e) {
-    ragIndexStatus.textContent = `❌ ${e.message}`;
+    if (ragIndexStatus) ragIndexStatus.textContent = `❌ ${e.message}`;
     toast("Indexing failed: " + e.message, "error");
   }
 });
 
 async function extractTextFromPDF(file) {
-  if (typeof pdfjsLib === 'undefined') {
-    throw new Error("PDF.js library is missing. Ensure 'lib/pdfjs/pdf.min.js' is in your extension folder.");
-  }
+  if (typeof pdfjsLib === 'undefined') throw new Error("PDF.js library is missing.");
   const arrayBuffer = await file.arrayBuffer();
   const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
   let text = "";
@@ -886,21 +845,23 @@ async function extractTextFromPDF(file) {
   }
   return text;
 }
-
 async function transcribeAudio(file) {
-  return `[Audio file: ${file.name} - Transcription requires whisper model. Please transcribe manually or use whisper.cpp]`;
+  return `[Audio file: ${file.name} - Transcription requires whisper model]`;
 }
 
-chatTitle.addEventListener("blur", () => {
-  const conv = conversations[activeConvId];
-  if (conv) {
-    conv.title = chatTitle.textContent.trim() || "New Chat";
-    saveConversations(); renderHistoryList();
-  }
-});
-chatTitle.addEventListener("keydown", (e) => {
-  if (e.key === "Enter") { e.preventDefault(); chatTitle.blur(); }
-});
+if (chatTitle) {
+  chatTitle.addEventListener("blur", () => {
+    const conv = conversations[activeConvId];
+    if (conv) {
+      conv.title = chatTitle.textContent.trim() || "New Chat";
+      saveConversations();
+      renderHistoryList();
+    }
+  });
+  chatTitle.addEventListener("keydown", (e) => {
+    if (e.key === "Enter") { e.preventDefault(); chatTitle.blur(); }
+  });
+}
 
 fontSizeBtns.forEach(btn => {
   btn.addEventListener("click", () => {
@@ -913,8 +874,9 @@ fontSizeBtns.forEach(btn => {
   });
 });
 
-attachBtn.addEventListener("click", () => filePicker.click());
-filePicker.addEventListener("change", async e => {
+/* ============ File Attach ============ */
+if (attachBtn) attachBtn.addEventListener("click", () => { if (filePicker) filePicker.click(); });
+if (filePicker) filePicker.addEventListener("change", async e => {
   await handleFiles(Array.from(e.target.files));
   filePicker.value = "";
 });
@@ -928,64 +890,89 @@ async function handleFiles(files) {
       thumb.src = `data:${file.type};base64,${b64}`;
       thumb.className = "thumb-preview";
       thumb.addEventListener("click", () => openImageModal(thumb.src));
-      previewZone.appendChild(thumb);
+      if (previewZone) previewZone.appendChild(thumb);
     } else {
       const txt = await file.text();
       contextFileText += `\n\n[Context from ${file.name}]:\n${txt}`;
       const pill = document.createElement("span");
-      pill.className = "file-pill"; pill.textContent = `📄 ${file.name}`;
-      previewZone.appendChild(pill);
+      pill.className = "file-pill";
+      pill.textContent = `📄 ${file.name}`;
+      if (previewZone) previewZone.appendChild(pill);
     }
   }
 }
-
 function fileToBase64(file) {
   return new Promise((res, rej) => {
     const r = new FileReader();
     r.onload = () => res(r.result.split(",")[1]);
-    r.onerror = rej; r.readAsDataURL(file);
+    r.onerror = rej;
+    r.readAsDataURL(file);
   });
 }
 
 /* ============ Image Modal ============ */
-function openImageModal(src) { modalImage.src = src; imageModal.classList.add("active"); }
-closeModal.addEventListener("click", () => imageModal.classList.remove("active"));
-imageModal.addEventListener("click", (e) => { if (e.target === imageModal) imageModal.classList.remove("active"); });
+function openImageModal(src) {
+  if (!imageModal || !modalImage) return;
+  modalImage.src = src;
+  imageModal.classList.add("active");
+}
+if (closeModal) closeModal.addEventListener("click", () => { if (imageModal) imageModal.classList.remove("active"); });
+if (imageModal) imageModal.addEventListener("click", (e) => { if (e.target === imageModal) imageModal.classList.remove("active"); });
 
 /* ============ Voice Input ============ */
 function initVoiceRecognition() {
   const SpeechRecognition = window.SpeechRecognition || window.webkitSpeechRecognition;
-  if (!SpeechRecognition) { voiceBtn.style.display = "none"; return; }
+  if (!SpeechRecognition) { if (voiceBtn) voiceBtn.style.display = "none"; return; }
   recognition = new SpeechRecognition();
-  recognition.continuous = false; recognition.interimResults = true; recognition.lang = "en-US";
+  recognition.continuous = false;
+  recognition.interimResults = true;
+  recognition.lang = "en-US";
   recognition.onresult = (event) => {
     const transcript = Array.from(event.results).map(r => r[0].transcript).join(" ");
-    userInput.value = transcript; autoResizeTextarea();
+    if (userInput) {
+      userInput.value = transcript;
+      autoResizeTextarea();
+    }
   };
   recognition.onend = () => {
-    isRecording = false; voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤";
+    isRecording = false;
+    if (voiceBtn) {
+      voiceBtn.classList.remove("recording");
+      voiceBtn.textContent = "🎤";
+    }
   };
   recognition.onerror = (e) => {
     toast("Voice error: " + e.error, "error");
-    isRecording = false; voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤";
+    isRecording = false;
+    if (voiceBtn) {
+      voiceBtn.classList.remove("recording");
+      voiceBtn.textContent = "🎤";
+    }
   };
 }
-voiceBtn.addEventListener("click", () => {
+if (voiceBtn) voiceBtn.addEventListener("click", () => {
   if (!recognition) return toast("Voice not supported", "error");
   if (isRecording) { recognition.stop(); }
-  else { recognition.start(); isRecording = true; voiceBtn.classList.add("recording"); voiceBtn.textContent = "⏹"; toast("Listening...", "info", 1500); }
+  else {
+    recognition.start();
+    isRecording = true;
+    voiceBtn.classList.add("recording");
+    voiceBtn.textContent = "⏹";
+    toast("Listening...", "info", 1500);
+  }
 });
 
 /* ============ Text-to-Speech ============ */
 function speakText(text) {
   if (!window.speechSynthesis) return toast("TTS not supported", "error");
   if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
-  const clean = text.replace(/```[\s\S]*?```/g, "").replace(/[#*`]/g, "");
+  const clean = text.replace(/`[\s\S]*?`/g, " ").replace(/[#*`]/g, " ");
   const utter = new SpeechSynthesisUtterance(clean);
-  utter.rate = 1; utter.pitch = 1;
+  utter.rate = 1;
+  utter.pitch = 1;
   speechSynthesis.speak(utter);
 }
-ttsToggleBtn.addEventListener("click", () => {
+if (ttsToggleBtn) ttsToggleBtn.addEventListener("click", () => {
   const conv = conversations[activeConvId];
   if (!conv) return;
   const lastAssistant = [...conv.messages].reverse().find(m => m.sender === "assistant");
@@ -994,7 +981,7 @@ ttsToggleBtn.addEventListener("click", () => {
 });
 
 /* ============ Prompt Templates ============ */
-promptTemplates.addEventListener("change", (e) => {
+if (promptTemplates) promptTemplates.addEventListener("change", (e) => {
   const templates = {
     summarize: "Please summarize the following content concisely:\n\n",
     explain: "Explain the following concept in simple terms:\n\n",
@@ -1004,7 +991,11 @@ promptTemplates.addEventListener("change", (e) => {
     refactor: "Refactor this code to improve readability and performance:\n\n```\n\n```\n"
   };
   const val = e.target.value;
-  if (templates[val]) { userInput.value = templates[val]; userInput.focus(); autoResizeTextarea(); }
+  if (templates[val] && userInput) {
+    userInput.value = templates[val];
+    userInput.focus();
+    autoResizeTextarea();
+  }
   e.target.value = "";
 });
 
@@ -1013,38 +1004,48 @@ browser.runtime.onMessage.addListener(handleIncomingPrompt);
 function handleIncomingPrompt(msg) {
   if (msg?.action !== "process-prompt") return;
   currentImages = msg.images || [];
-  userInput.value = msg.text || "";
-  autoResizeTextarea(); sendBtn.click();
+  if (userInput) userInput.value = msg.text || "";
+  autoResizeTextarea();
+  if (sendBtn) sendBtn.click();
 }
 
 /* ============ Send ============ */
-sendBtn.addEventListener("click", () => {
-  let text = userInput.value.trim();
+if (sendBtn) sendBtn.addEventListener("click", () => {
+  let text = userInput ? userInput.value.trim() : "";
   if (!text && currentImages.length === 0 && !contextFileText) return;
   if (contextFileText) text = `${text}\n${contextFileText}`.trim();
-  userInput.value = ""; previewZone.innerHTML = "";
-  const imgs = [...currentImages]; currentImages = []; contextFileText = "";
-  autoResizeTextarea(); askOllama(text, imgs);
+  if (userInput) userInput.value = "";
+  if (previewZone) previewZone.innerHTML = "";
+  const imgs = [...currentImages];
+  currentImages = [];
+  contextFileText = "";
+  autoResizeTextarea();
+  askOllama(text, imgs);
 });
 
-userInput.addEventListener("keydown", e => {
-  if (e.key === "Enter" && !e.shiftKey) { e.preventDefault(); sendBtn.click(); }
-});
-userInput.addEventListener("input", autoResizeTextarea);
+if (userInput) {
+  userInput.addEventListener("keydown", e => {
+    if (e.key === "Enter" && !e.shiftKey) {
+      e.preventDefault();
+      if (sendBtn) sendBtn.click();
+    }
+  });
+  userInput.addEventListener("input", autoResizeTextarea);
+}
 
 function autoResizeTextarea() {
+  if (!userInput) return;
   userInput.style.height = "auto";
   userInput.style.height = Math.min(userInput.scrollHeight, 160) + "px";
 }
 
 /* ============ Stop ============ */
-stopBtn.addEventListener("click", () => {
+if (stopBtn) stopBtn.addEventListener("click", () => {
   if (currentAbortController) currentAbortController.abort();
   if (speechSynthesis.speaking) speechSynthesis.cancel();
 });
 
-/* ============ RAG Engine - FIXED ============ */
-
+/* ============ RAG Engine ============ */
 function openDB() {
   return new Promise((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION);
@@ -1064,32 +1065,21 @@ function openDB() {
 }
 
 async function getEmbedding(text, model) {
-  const baseUrl = cfgUrl.value.trim().replace(/\/$/, "");
+  const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
   const res = await fetch(`${baseUrl}/api/embeddings`, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
-    body: JSON.stringify({ model: model, prompt: text })
+    body: JSON.stringify({ model, prompt: text })
   });
   if (!res.ok) throw new Error('Embedding API failed');
   const data = await res.json();
   return data.embedding;
 }
 
-function cosineSimilarity(vecA, vecB) {
-  let dotProduct = 0, normA = 0, normB = 0;
-  for (let i = 0; i < vecA.length; i++) {
-    dotProduct += vecA[i] * vecB[i];
-    normA += vecA[i] * vecA[i];
-    normB += vecB[i] * vecB[i];
-  }
-  return dotProduct / (Math.sqrt(normA) * Math.sqrt(normB));
-}
-
 function chunkTextBySentences(text, chunkSize = 1000, overlap = 200) {
   const sentences = text.match(/[^.!?]+[.!?]+|[^.!?]+$/g) || [text];
   const chunks = [];
   let currentChunk = "";
-
   for (const sentence of sentences) {
     if ((currentChunk + sentence).length > chunkSize && currentChunk.length > 0) {
       chunks.push(currentChunk.trim());
@@ -1099,33 +1089,25 @@ function chunkTextBySentences(text, chunkSize = 1000, overlap = 200) {
       currentChunk += sentence;
     }
   }
-  if (currentChunk.trim().length > 0) {
-    chunks.push(currentChunk.trim());
-  }
+  if (currentChunk.trim().length > 0) chunks.push(currentChunk.trim());
   return chunks;
 }
 
 async function indexContent(source, text) {
   const db = await openDB();
-  const embeddingModel = cfgRagModel.value || "nomic-embed-text";
-  const chunkSize = parseInt(cfgRagChunkSize.value) || 1000;
-  //const chunks = await chunkText(text, chunkSize, 200);
-  const chunks = await chunkTextBySentences(text, chunkSize, 200);
-  
+  const embeddingModel = cfgRagModel ? cfgRagModel.value : "nomic-embed-text";
+  const chunkSize = cfgRagChunkSize ? parseInt(cfgRagChunkSize.value) : 1000;
+  const chunks = chunkTextBySentences(text, chunkSize, 200);
   const embeddings = [];
   for (const chunk of chunks) {
     const embedding = await getEmbedding(chunk, embeddingModel);
     embeddings.push({ source, text: chunk, embedding, timestamp: Date.now() });
   }
-  
   const tx = db.transaction(STORE_NAME, 'readwrite');
   const store = tx.objectStore(STORE_NAME);
-  for (const item of embeddings) { store.add(item); }
-  
+  for (const item of embeddings) store.add(item);
   const docsTx = db.transaction(DOCS_STORE, 'readwrite');
-  const docsStore = docsTx.objectStore(DOCS_STORE);
-  docsStore.put({ name: source, chunks: chunks.length, timestamp: Date.now() });
-  
+  docsTx.objectStore(DOCS_STORE).put({ name: source, chunks: chunks.length, timestamp: Date.now() });
   return new Promise((resolve, reject) => {
     tx.oncomplete = () => resolve();
     tx.onerror = (e) => reject(e.target.error);
@@ -1134,13 +1116,12 @@ async function indexContent(source, text) {
 
 async function queryRAG(prompt) {
   const db = await openDB();
-  const embeddingModel = cfgRagModel.value || "nomic-embed-text";
-  const topK = parseInt(cfgRagTopk.value) || 3;
+  const embeddingModel = cfgRagModel ? cfgRagModel.value : "nomic-embed-text";
+  const topK = cfgRagTopk ? parseInt(cfgRagTopk.value) : 3;
   const queryEmbedding = await getEmbedding(prompt, embeddingModel);
   const tx = db.transaction(STORE_NAME, 'readonly');
   const store = tx.objectStore(STORE_NAME);
   const request = store.getAll();
-
   return new Promise((resolve) => {
     request.onsuccess = () => {
       const allChunks = request.result;
@@ -1148,20 +1129,29 @@ async function queryRAG(prompt) {
         resolve({ context: "", sources: [] });
         return;
       }
-
       const scored = allChunks.map(chunk => ({
         ...chunk,
         score: cosineSimilarity(queryEmbedding, chunk.embedding)
       }));
       scored.sort((a, b) => b.score - a.score);
       const topChunks = scored.slice(0, topK);
-
       const context = topChunks.map(c => `[Source: ${c.source}]\n${c.text}`).join('\n\n---\n\n');
       const sources = topChunks.map(c => c.source);
-
       resolve({ context, sources });
     };
   });
+}
+
+function cosineSimilarity(vecA, vecB) {
+  if (!vecA || !vecB || vecA.length !== vecB.length) return 0;
+  let dot = 0, normA = 0, normB = 0;
+  for (let i = 0; i < vecA.length; i++) {
+    dot += vecA[i] * vecB[i];
+    normA += vecA[i] * vecA[i];
+    normB += vecB[i] * vecB[i];
+  }
+  const denom = Math.sqrt(normA) * Math.sqrt(normB);
+  return denom === 0 ? 0 : dot / denom;
 }
 
 async function loadRagDocuments() {
@@ -1169,9 +1159,9 @@ async function loadRagDocuments() {
   const tx = db.transaction(DOCS_STORE, 'readonly');
   const store = tx.objectStore(DOCS_STORE);
   const request = store.getAll();
-  
   request.onsuccess = () => {
     const docs = request.result;
+    if (!ragDocList) return;
     if (docs.length === 0) {
       ragDocList.innerHTML = `<div style="text-align:center; padding:20px; color:var(--fg-muted); font-size:12px;">No documents indexed yet</div>`;
       return;
@@ -1185,11 +1175,9 @@ async function loadRagDocuments() {
           <div class="rag-doc-name">${escapeHtml(doc.name)}</div>
           <div class="rag-doc-meta">${doc.chunks} chunks · ${new Date(doc.timestamp).toLocaleDateString()}</div>
         </div>
-        <button class="rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">🗑️</button>
-      `;
+        <button class="rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">🗑️</button>`;
       ragDocList.appendChild(item);
     });
-    
     ragDocList.querySelectorAll('.rag-doc-delete').forEach(btn => {
       btn.addEventListener("click", async () => {
         const name = btn.dataset.name;
@@ -1209,19 +1197,16 @@ async function deleteRagDocument(name) {
   const chunksStore = chunksTx.objectStore(STORE_NAME);
   const index = chunksStore.index('source');
   const request = index.openCursor(IDBKeyRange.only(name));
-  
   request.onsuccess = (event) => {
     const cursor = event.target.result;
     if (cursor) { cursor.delete(); cursor.continue(); }
   };
-  
   const docsTx = db.transaction(DOCS_STORE, 'readwrite');
   docsTx.objectStore(DOCS_STORE).delete(name);
-  
   return new Promise((resolve) => { chunksTx.oncomplete = () => resolve(); });
 }
 
-ragClearAllBtn.addEventListener("click", async () => {
+if (ragClearAllBtn) ragClearAllBtn.addEventListener("click", async () => {
   if (!confirm("Delete ALL documents from knowledge base?")) return;
   const db = await openDB();
   const chunksTx = db.transaction(STORE_NAME, 'readwrite');
@@ -1240,14 +1225,15 @@ async function askOllama(promptText, images = []) {
   const wrapper = appendMessage("", "assistant");
   const msgDiv = wrapper.querySelector(".message");
   msgDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
-
-  sendBtn.style.display = "none"; stopBtn.style.display = "inline-flex";
-  isGenerating = true; currentAbortController = new AbortController();
-
+  if (sendBtn) sendBtn.style.display = "none";
+  if (stopBtn) stopBtn.style.display = "inline-flex";
+  isGenerating = true;
+  currentAbortController = new AbortController();
+  
   let accumulated = "";
   let thinkingContent = "";
   let finalPrompt = promptText;
-  let ragSources = []; // <--- THIS FIXES THE ERROR
+  let ragSources = [];
 
   if (ragEnabled) {
     try {
@@ -1263,14 +1249,13 @@ async function askOllama(promptText, images = []) {
     }
   }
 
-  const baseUrl = cfgUrl.value.trim().replace(/\/$/, "");
-  const isOpenAIMode = cfgOpenaiMode.checked;
-  const apiKey = cfgApiKey.value;
+  const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
+  const isOpenAIMode = cfgOpenaiMode ? cfgOpenaiMode.checked : false;
+  const apiKey = cfgApiKey ? cfgApiKey.value : "";
   const conv = conversations[activeConvId];
-
+  
   const messages = [];
-  if (cfgSystemPrompt.value.trim()) messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
-
+  if (cfgSystemPrompt && cfgSystemPrompt.value.trim()) messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
   const history = conv.messages.slice(0, -1).slice(-10);
   history.forEach(m => {
     if (m.sender === "user" || m.sender === "assistant") messages.push({ role: m.sender, content: m.text });
@@ -1281,19 +1266,22 @@ async function askOllama(promptText, images = []) {
   if (isOpenAIMode) {
     fetchUrl = `${baseUrl}/v1/chat/completions`;
     if (apiKey) fetchHeaders["Authorization"] = `Bearer ${apiKey}`;
-    fetchBody = { model: cfgModel.value || "gpt-3.5-turbo", messages: messages, temperature: parseFloat(cfgTemp.value), stream: cfgStream.checked };
+    fetchBody = { model: cfgModel ? cfgModel.value : "gpt-3.5-turbo", messages, temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, stream: cfgStream ? cfgStream.checked : true };
   } else {
     fetchUrl = `${baseUrl}/api/chat`;
-
-
-    fetchBody = { model: cfgModel.value || "gemma4", messages: messages, stream: cfgStream.checked, options: { temperature: parseFloat(cfgTemp.value), num_ctx: parseInt(cfgCtx.value) } };
+    fetchBody = { model: cfgModel ? cfgModel.value : "gemma4", messages, stream: cfgStream ? cfgStream.checked : true, options: { temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, num_ctx: cfgCtx ? parseInt(cfgCtx.value) : 4096 } };
   }
 
   try {
-    const res = await fetch(fetchUrl, { method: "POST", headers: fetchHeaders, signal: currentAbortController.signal, body: JSON.stringify(fetchBody) });
+    const res = await fetch(fetchUrl, {
+      method: "POST",
+      headers: fetchHeaders,
+      signal: currentAbortController.signal,
+      body: JSON.stringify(fetchBody)
+    });
     if (!res.ok) throw new Error(`Server returned ${res.status}`);
 
-    if (cfgStream.checked) {
+    if (cfgStream ? cfgStream.checked : true) {
       const reader = res.body.getReader();
       const decoder = new TextDecoder();
       let buffer = "";
@@ -1301,7 +1289,8 @@ async function askOllama(promptText, images = []) {
         const { value, done } = await reader.read();
         if (done) break;
         buffer += decoder.decode(value, { stream: true });
-        const lines = buffer.split("\n"); buffer = lines.pop();
+        const lines = buffer.split("\n");
+        buffer = lines.pop();
         for (const line of lines) {
           if (!line.trim()) continue;
           try {
@@ -1311,7 +1300,10 @@ async function askOllama(promptText, images = []) {
                 if (jsonStr === "[DONE]") break;
                 const parsed = JSON.parse(jsonStr);
                 const delta = parsed.choices?.[0]?.delta?.content;
-                if (delta) { accumulated += delta; updateStreamingMessage(msgDiv, accumulated, thinkingContent); }
+                if (delta) {
+                  accumulated += delta;
+                  updateStreamingMessage(msgDiv, accumulated, thinkingContent);
+                }
               }
             } else {
               const parsed = JSON.parse(line);
@@ -1330,7 +1322,6 @@ async function askOllama(promptText, images = []) {
       updateStreamingMessage(msgDiv, accumulated, thinkingContent, true);
     }
 
-    // Save sources to history
     conv.messages[conv.messages.length - 1] = {
       id: wrapper.dataset.msgId,
       text: accumulated,
@@ -1340,11 +1331,10 @@ async function askOllama(promptText, images = []) {
       thinking: thinkingContent || null,
       ragSources: ragSources.length > 0 ? ragSources : null
     };
-    saveConversations(); updateTokenCounter();
+    saveConversations();
+    updateTokenCounter();
+    if (cfgAutoTts && cfgAutoTts.checked && accumulated) speakText(accumulated);
 
-    if (cfgAutoTts.checked && accumulated) speakText(accumulated);
-
-    // Render sources UI for the current streaming message
     if (ragSources.length > 0) {
       const sourcesDiv = document.createElement("div");
       sourcesDiv.className = "rag-sources";
@@ -1361,131 +1351,177 @@ async function askOllama(promptText, images = []) {
   } catch (err) {
     if (err.name === "AbortError") {
       msgDiv.innerHTML = parseMarkdownToHtml(accumulated + "\n\n*[stopped]*");
-      conv.messages[conv.messages.length - 1] = { id: wrapper.dataset.msgId, text: accumulated, sender: "assistant", images: [], ts: Date.now(), thinking: thinkingContent || null };
-      saveConversations(); toast("Generation stopped", "warning");
+      conv.messages[conv.messages.length - 1] = {
+        id: wrapper.dataset.msgId,
+        text: accumulated,
+        sender: "assistant",
+        images: [],
+        ts: Date.now(),
+        thinking: thinkingContent || null
+      };
+      saveConversations();
+      toast("Generation stopped", "warning");
     } else {
       msgDiv.innerHTML = `<span style="color:var(--error);">⚠️ ${escapeHtml(err.message)}</span>`;
       toast("Error: " + err.message, "error");
     }
   } finally {
-    sendBtn.style.display = "inline-flex"; stopBtn.style.display = "none";
-    isGenerating = false; currentAbortController = null; currentImages = [];
+    if (sendBtn) sendBtn.style.display = "inline-flex";
+    if (stopBtn) stopBtn.style.display = "none";
+    isGenerating = false;
+    currentAbortController = null;
+    currentImages = [];
   }
 }
 
-
-
 function updateStreamingMessage(msgDiv, content, thinking, final = false) {
   let html = "";
-  if (thinking && cfgShowThinking.checked) {
+  if (thinking && cfgShowThinking && cfgShowThinking.checked) {
     html += `<details class="thinking-block" ${final ? "" : "open"}><summary>💭 Thinking...</summary><div>${parseMarkdownToHtml(thinking)}</div></details>`;
   }
   html += `<div class="message-content">${content ? parseMarkdownToHtml(content) : '<div class="typing-indicator"><span></span><span></span><span></span></div>'}</div>`;
   msgDiv.innerHTML = html;
-  
-  enhanceCodeBlocks(msgDiv); // Apply syntax highlighting during stream
+  enhanceCodeBlocks(msgDiv);
   autoScrollChat();
 }
 
-/* ============ Model fetching ============ */
+/* ============ Model fetching (DEBUGGABLE) ============ */
 async function fetchOllamaModels() {
+  console.log("[Models] Starting fetch...");
   try {
-    const baseUrl = cfgUrl.value.trim().replace(/\/$/, "");
-    if (!baseUrl) { toast("Please enter a valid Server URL first.", "warning"); return; }
+    let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
+    // Remove trailing slash safely
+    if (baseUrl.endsWith('/')) {
+      baseUrl = baseUrl.slice(0, -1);
+    }
     
+    if (!baseUrl) { 
+      console.warn("[Models] No base URL provided.");
+      toast("Please enter a valid Server URL first.", "warning"); 
+      return; 
+    }
+
     const url = `${baseUrl}/api/tags`;
+    console.log("[Models] Fetching from:", url);
+
     const res = await fetch(url);
-    if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
-    const data = await res.json();
     
-    cfgModel.innerHTML = "";
-    cfgRagModel.innerHTML = "";
+    if (!res.ok) {
+      throw new Error(`HTTP ${res.status}: ${res.statusText}`);
+    }
+    
+    const data = await res.json();
+    console.log("[Models] Received data:", data);
+    
+    // Clear existing options
+    if (cfgModel) cfgModel.innerHTML = "";
+    if (cfgRagModel) cfgRagModel.innerHTML = "";
     
     const defaultEmbed = "nomic-embed-text";
     let hasDefaultEmbed = false;
-    
+
     if (data.models && data.models.length > 0) {
       data.models.forEach(m => {
-        const o = document.createElement("option");
-        o.value = m.name; o.textContent = m.name;
-        cfgModel.appendChild(o);
-        
-        const ragOpt = document.createElement("option");
-        ragOpt.value = m.name; ragOpt.textContent = m.name;
-        cfgRagModel.appendChild(ragOpt);
-        
+        // Add to Main Model Select
+        if (cfgModel) {
+          const o = document.createElement("option");
+          o.value = m.name; 
+          o.textContent = m.name;
+          cfgModel.appendChild(o);
+        }
+
+        // Add to RAG Model Select
+        if (cfgRagModel) {
+          const ragOpt = document.createElement("option");
+          ragOpt.value = m.name; 
+          ragOpt.textContent = m.name;
+          cfgRagModel.appendChild(ragOpt);
+        }
+
         if (m.name === defaultEmbed) hasDefaultEmbed = true;
       });
-      
-      if (!hasDefaultEmbed) {
+
+      // Add default embedding model if not present
+      if (!hasDefaultEmbed && cfgRagModel) {
         const ragOpt = document.createElement("option");
         ragOpt.value = defaultEmbed;
         ragOpt.textContent = `${defaultEmbed} (not installed)`;
         cfgRagModel.prepend(ragOpt);
       }
-      
+
+      // Restore saved selections
       browser.storage.local.get(["selectedModel", "ragModel"]).then(res => {
-        if (res.selectedModel) cfgModel.value = res.selectedModel;
-        if (res.ragModel) cfgRagModel.value = res.ragModel;
-        else cfgRagModel.value = defaultEmbed;
+        if (res.selectedModel && cfgModel) cfgModel.value = res.selectedModel;
+        if (res.ragModel && cfgRagModel) cfgRagModel.value = res.ragModel;
+        else if (cfgRagModel) cfgRagModel.value = defaultEmbed;
         
-        currentModelTag.innerText = cfgModel.value;
+        if (currentModelTag && cfgModel) currentModelTag.innerText = cfgModel.value;
       });
-      
+
       toast(`Loaded ${data.models.length} models`, "success");
-      pullModelUi.style.display = "none";
     } else {
+      console.warn("[Models] No models found in response.");
       toast("No models found. Click 'Pull' to download one.", "warning");
-      pullModelUi.style.display = "block";
     }
   } catch (e) {
-    toast(`Could not fetch models: ${e.message}`, "error");
-    pullModelUi.style.display = "block";
+    console.error("[Models] Fetch error:", e);
+    toast(`Could not fetch models: ${e.message}. Check Ollama is running.`, "error");
   }
 }
 
 /* ============ Server status ============ */
 async function checkServerStatus() {
   try {
-    const baseUrl = cfgUrl.value.trim().replace(/\/$/, "");
+    let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
+    if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
     if (!baseUrl) return;
+    
     const res = await fetch(`${baseUrl}/api/tags`);
-    if (res.ok) { statusDot.className = "status-dot online"; statusText.textContent = "Server online"; }
-    else throw new Error();
-  } catch { statusDot.className = "status-dot offline"; statusText.textContent = "Server offline"; }
+    if (res.ok) {
+      if (statusDot) statusDot.className = "status-dot online";
+      if (statusText) statusText.textContent = "Server online";
+    } else throw new Error();
+  } catch {
+    if (statusDot) statusDot.className = "status-dot offline";
+    if (statusText) statusText.textContent = "Server offline";
+  }
 }
 
 /* ============ Token Counter ============ */
 function updateTokenCounter() {
   if (!tokenCounter) return;
   const conv = conversations[activeConvId];
-  if (!conv || !conv.messages) { tokenCounter.textContent = "~0 tokens"; return; }
+  if (!conv || !conv.messages) {
+    tokenCounter.textContent = "~0 tokens";
+    if (messageCount) messageCount.textContent = "0 messages";
+    return;
+  }
   let totalChars = 0;
   conv.messages.forEach(m => { if (m.text) totalChars += m.text.length; });
   const estimatedTokens = Math.round(totalChars / 4);
   tokenCounter.textContent = `~${estimatedTokens} tokens`;
-  chatMeta.innerHTML = `${conv.messages.length} messages · <span>${tokenCounter.textContent}</span>`;
+  if (messageCount) messageCount.textContent = `${conv.messages.length} messages`;
 }
 
 /* ============ Keyboard Shortcuts ============ */
 document.addEventListener("keydown", (e) => {
   if (e.ctrlKey || e.metaKey) {
     if (e.key === "n" || e.key === "N") { e.preventDefault(); createConversation(true); }
-    else if (e.key === "k" || e.key === "K") { e.preventDefault(); historyBtn.click(); }
-    else if (e.key === "e" || e.key === "E") { e.preventDefault(); exportBtn.click(); }
-    else if (e.key === ",") { e.preventDefault(); toggleSettingsBtn.click(); }
-    else if (e.key === "/" || e.key === "?") { e.preventDefault(); shortcutsModal.classList.toggle("active"); }
-    else if (e.key === "r" || e.key === "R") { e.preventDefault(); ragToggleBtn.click(); }
+    else if (e.key === "k" || e.key === "K") { e.preventDefault(); if (historyBtn) historyBtn.click(); }
+    else if (e.key === "e" || e.key === "E") { e.preventDefault(); if (exportBtn) exportBtn.click(); }
+    else if (e.key === ",") { e.preventDefault(); if (toggleSettingsBtn) toggleSettingsBtn.click(); }
+    else if (e.key === "/" || e.key === "?") { e.preventDefault(); if (shortcutsModal) shortcutsModal.classList.toggle("active"); }
+    else if (e.key === "r" || e.key === "R") { e.preventDefault(); if (ragToggleBtn) ragToggleBtn.click(); }
   }
   if (e.key === "Escape") {
-    imageModal.classList.remove("active");
-    shortcutsModal.classList.remove("active");
-    historyModal.classList.remove("active");
-    settingsModal.classList.remove("active");
+    if (imageModal) imageModal.classList.remove("active");
+    if (shortcutsModal) shortcutsModal.classList.remove("active");
+    if (historyModal) historyModal.classList.remove("active");
+    if (settingsModal) settingsModal.classList.remove("active");
     if (isGenerating && currentAbortController) currentAbortController.abort();
   }
 });
 
-closeShortcuts.addEventListener("click", () => shortcutsModal.classList.remove("active"));
-shortcutsModal.addEventListener("click", (e) => { if (e.target === shortcutsModal) shortcutsModal.classList.remove("active"); });
-historyModal.addEventListener("click", (e) => { if (e.target === historyModal) historyModal.classList.remove("active"); });
+if (closeShortcuts) closeShortcuts.addEventListener("click", () => { if (shortcutsModal) shortcutsModal.classList.remove("active"); });
+if (shortcutsModal) shortcutsModal.addEventListener("click", (e) => { if (e.target === shortcutsModal) shortcutsModal.classList.remove("active"); });
+if (historyModal) historyModal.addEventListener("click", (e) => { if (e.target === historyModal) historyModal.classList.remove("active"); });
