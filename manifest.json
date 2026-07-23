@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "Local AI Workspace",
+  "name": "ChatAI🧠 Assistant: Local AI Multimodal Workspace",
   "version": "1.0.0",
-  "description": "Local AI assistant with RAG, multi-modal support, and advanced features",
+  "description": "ChatAI🧠 Assistant: Local AI assistant with RAG, multi-modal support, and advanced features",
   "icons": {
     "48": "icon.png",
     "96": "icon.png"
@@ -30,7 +30,7 @@
     "default_icon": "icon.png"
   },
   "action": {
-    "default_title": "Open Local AI Sidebar",
+    "default_title": "Open ChatAI🧠 Assistant",
     "default_icon": "icon.png"
   },
   "web_accessible_resources": [
