@@ -594,3 +594,121 @@ kbd {
 /* Tab Content Visibility */
 .settings-tab-content { display: none; animation: fadeIn 0.2s ease; }
 .settings-tab-content.active { display: block; }
+/* ========== 8. UI/UX ENHANCEMENTS ========== */
+
+/* Scroll to bottom button */
+#scroll-bottom-btn {
+position: absolute;
+bottom: 80px;
+right: 20px;
+z-index: 50;
+background: var(--bg-elevated);
+border: 1px solid var(--border);
+box-shadow: var(--shadow);
+transition: all var(--transition);
+}
+#scroll-bottom-btn:hover {
+background: var(--accent);
+color: var(--bg);
+transform: translateY(-2px);
+}
+
+/* Ensure drag overlay covers the whole arena properly */
+.drag-overlay {
+  position: absolute;
+  inset: 0;
+  background: rgba(124, 156, 255, 0.15);
+  backdrop-filter: blur(4px);
+  border: 3px dashed var(--accent);
+  border-radius: var(--radius);
+  display: none;
+  align-items: center;
+  justify-content: center;
+  z-index: 999;
+  pointer-events: none;
+  animation: fadeIn 0.2s ease;
+}
+.drag-overlay.active {
+  display: flex;
+}
+
+/* Inline Edit Modal specific tweaks */
+.inline-edit-modal .inline-edit-textarea:focus {
+  outline: none;
+  border-color: var(--accent);
+  box-shadow: 0 0 0 3px var(--accent-soft);
+}
+/* ========== 9. MOBILE & ANDROID FIREFOX SUPPORT ========== */
+
+/* Use dynamic viewport height to prevent mobile browser UI from cutting off content */
+@supports (height: 100dvh) {
+  body, .workspace-root {
+    height: 100dvh;
+  }
+}
+
+@media (max-width: 600px) {
+  /* Enlarge touch targets for fingers (minimum 44x44px recommended) */
+  .icon-btn, .tray-btn, .control-trigger, .feedback-btn, .action-link, .fork-btn {
+    min-width: 44px;
+    min-height: 44px;
+    font-size: 18px;
+    padding: 10px;
+  }
+
+  /* Hide the sidebar resize handle since it's a full tab on mobile */
+  .resize-handle {
+    display: none !important;
+  }
+
+  /* Optimize header for small screens */
+  .chat-header {
+    padding: 10px 12px;
+    gap: 8px;
+  }
+
+  .chat-title-area h3 {
+    font-size: 16px;
+  }
+
+  /* Make messages more readable on mobile */
+  .message {
+    font-size: 15px;
+    padding: 14px 16px;
+  }
+
+  .message-wrapper {
+    max-width: 95%;
+  }
+
+  /* Comfortable input area for touch keyboards */
+  .footer-input-tray {
+    padding: 12px;
+  }
+
+  #user-input {
+  font-size: 16px; /* Prevents auto-zoom when focusing input on mobile */
+  min-height: 48px;
+  }
+
+  /* Make modals fit mobile screens better */
+  .modal-content, .settings-modal-content, .history-modal-content {
+    width: 96%;
+    max-height: 90vh;
+    margin: 2vh auto;
+  }
+
+  /* Hide desktop shortcut hints since mobile has no keyboard */
+  .shortcut-hint {
+    display: none;
+  }
+
+  /* Adjust empty state for mobile */
+  .empty-state {
+    padding: 32px 16px;
+  }
+
+  .empty-icon {
+    font-size: 48px;
+  }
+}

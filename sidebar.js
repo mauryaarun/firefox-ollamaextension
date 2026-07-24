@@ -1447,3 +1447,187 @@ document.addEventListener("keydown", (e) => {
 if (closeShortcuts) closeShortcuts.addEventListener("click", () => { if (shortcutsModal) shortcutsModal.classList.remove("active"); });
 if (shortcutsModal) shortcutsModal.addEventListener("click", (e) => { if (e.target === shortcutsModal) shortcutsModal.classList.remove("active"); });
 if (historyModal) historyModal.addEventListener("click", (e) => { if (e.target === historyModal) historyModal.classList.remove("active"); });
+
+
+/* ============ UI/UX ENHANCEMENTS ============ */
+
+// 1. Context Menu Storage Listener (Fixes Context Not Sending when sidebar is already open)
+browser.storage.onChanged.addListener((changes, area) => {
+    if (area === 'local' && changes.pendingPrompt && changes.pendingPrompt.newValue) {
+        handleIncomingPrompt(changes.pendingPrompt.newValue);
+        browser.storage.local.remove("pendingPrompt");
+    }
+});
+
+// 2. Scroll to Bottom Button
+const scrollBottomBtn = document.createElement('button');
+scrollBottomBtn.id = 'scroll-bottom-btn';
+scrollBottomBtn.className = 'icon-btn';
+scrollBottomBtn.innerHTML = '⬇️';
+scrollBottomBtn.title = 'Scroll to bottom';
+const chatArena = document.querySelector('.chat-arena');
+if (chatArena) {
+    chatArena.appendChild(scrollBottomBtn);
+
+    chatContainer.addEventListener('scroll', () => {
+        const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
+        scrollBottomBtn.style.display = isNearBottom ? 'none' : 'inline-flex';
+    });
+
+    scrollBottomBtn.addEventListener('click', () => {
+        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
+    });
+}
+
+// 3. Drag and Drop Support
+let dragOverlay = document.querySelector('.drag-overlay');
+if (!dragOverlay && chatArena) {
+    dragOverlay = document.createElement('div');
+    dragOverlay.className = 'drag-overlay';
+    dragOverlay.innerHTML = `<div class="drag-overlay-content"><div class="drag-icon">📎</div><div class="drag-text">Drop files to attach</div></div>`;
+    chatArena.appendChild(dragOverlay);
+}
+
+if (chatArena && dragOverlay) {
+    let dragCounter = 0;
+
+    chatArena.addEventListener('dragenter', (e) => {
+        e.preventDefault();
+        if (e.dataTransfer.types.includes('Files')) {
+            dragCounter++;
+            dragOverlay.classList.add('active');
+        }
+    });
+
+    chatArena.addEventListener('dragleave', (e) => {
+        e.preventDefault();
+        dragCounter--;
+        if (dragCounter === 0) dragOverlay.classList.remove('active');
+    });
+
+        chatArena.addEventListener('dragover', (e) => e.preventDefault());
+
+        chatArena.addEventListener('drop', async (e) => {
+            e.preventDefault();
+            dragCounter = 0;
+            dragOverlay.classList.remove('active');
+            if (e.dataTransfer.files.length > 0) {
+                await handleFiles(Array.from(e.dataTransfer.files));
+            }
+        });
+}
+
+// 4. Slash Commands Palette
+let slashPalette = document.querySelector('.slash-palette');
+if (!slashPalette && document.querySelector('.footer-input-tray')) {
+    slashPalette = document.createElement('div');
+    slashPalette.className = 'slash-palette';
+    document.querySelector('.footer-input-tray').appendChild(slashPalette);
+}
+
+const slashCommands = [
+    { name: 'summarize', icon: '📋', desc: 'Summarize text', prompt: 'Please summarize the following content concisely:\n\n' },
+{ name: 'explain', icon: '💡', desc: 'Explain concept', prompt: 'Explain the following concept in simple terms:\n\n' },
+{ name: 'translate', icon: '🌐', desc: 'Translate text', prompt: 'Translate the following text to English:\n\n' },
+{ name: 'code-review', icon: '🔍', desc: 'Review code', prompt: 'Review this code for bugs and improvements:\n\n```\n\n```\n' },
+{ name: 'brainstorm', icon: '🎨', desc: 'Brainstorm ideas', prompt: 'Help me brainstorm ideas for: ' },
+{ name: 'refactor', icon: '🛠️', desc: 'Refactor code', prompt: 'Refactor this code to improve readability:\n\n```\n\n```\n' }
+];
+
+if (userInput && slashPalette) {
+    let html = '<div class="slash-palette-header">Commands</div><div class="slash-palette-list">';
+    slashCommands.forEach(cmd => {
+        html += `<div class="slash-command" data-prompt="${cmd.prompt.replace(/"/g, '&quot;')}">
+        <div class="slash-command-icon">${cmd.icon}</div>
+        <div class="slash-command-info">
+        <div class="slash-command-name">/${cmd.name}</div>
+        <div class="slash-command-desc">${cmd.desc}</div>
+        </div>
+        </div>`;
+    });
+    html += '</div>';
+    slashPalette.innerHTML = html;
+
+    userInput.addEventListener('input', () => {
+        if (userInput.value.startsWith('/')) {
+            slashPalette.classList.add('active');
+            const filter = userInput.value.slice(1).toLowerCase();
+            slashPalette.querySelectorAll('.slash-command').forEach(el => {
+                const name = el.querySelector('.slash-command-name').textContent.toLowerCase();
+                el.style.display = name.includes(filter) ? 'flex' : 'none';
+            });
+        } else {
+            slashPalette.classList.remove('active');
+        }
+    });
+
+    slashPalette.addEventListener('click', (e) => {
+        const cmd = e.target.closest('.slash-command');
+        if (cmd) {
+            userInput.value = cmd.dataset.prompt;
+            slashPalette.classList.remove('active');
+            userInput.focus();
+            autoResizeTextarea();
+        }
+    });
+
+    userInput.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') slashPalette.classList.remove('active');
+    });
+}
+
+// 5. Inline Edit Modal (Replaces ugly native prompt)
+function showEditModal(originalText, onSave) {
+    let modal = document.querySelector('.inline-edit-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.className = 'modal inline-edit-modal';
+        modal.innerHTML = `
+        <div class="modal-content inline-edit-content">
+        <div class="modal-header">
+        <h3>Edit Message</h3>
+        <button class="modal-close-btn">✕</button>
+        </div>
+        <div class="modal-body">
+        <textarea class="inline-edit-textarea" style="width:100%; min-height:120px; padding:12px; background:var(--bg-surface); color:var(--fg); border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; line-height:1.5; resize:vertical;"></textarea>
+        </div>
+        <div class="modal-footer">
+        <button class="action-btn cancel-edit">Cancel</button>
+        <button class="action-btn primary save-edit">Save & Resend</button>
+        </div>
+        </div>
+        `;
+        document.body.appendChild(modal);
+
+        modal.querySelector('.modal-close-btn').addEventListener('click', () => modal.classList.remove('active'));
+        modal.querySelector('.cancel-edit').addEventListener('click', () => modal.classList.remove('active'));
+        modal.querySelector('.save-edit').addEventListener('click', () => {
+            const newText = modal.querySelector('.inline-edit-textarea').value;
+            modal.classList.remove('active');
+            onSave(newText);
+        });
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
+    }
+
+    modal.querySelector('.inline-edit-textarea').value = originalText;
+    modal.classList.add('active');
+    setTimeout(() => modal.querySelector('.inline-edit-textarea').focus(), 100);
+}
+
+// Override the original editAndResend to use the new modal
+async function editAndResend(msgId) {
+    const conv = conversations[activeConvId];
+    const idx = conv.messages.findIndex(m => m.id === msgId);
+    if (idx < 0) return;
+    const original = conv.messages[idx];
+
+    showEditModal(original.text, (newText) => {
+        if (!newText || !newText.trim()) return;
+        conv.messages = conv.messages.slice(0, idx);
+        saveConversations();
+        renderMessages();
+        if(userInput) userInput.value = newText;
+        if(sendBtn) sendBtn.click();
+    });
+}
+
