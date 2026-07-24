@@ -264,10 +264,16 @@ function escapeHtml(s) {
 }
 
 /* ============ Code Block Enhancements ============ */
+/* ============ Code Block Enhancements ============ */
 function enhanceCodeBlocks(container) {
     const codeBlocks = container.querySelectorAll('pre code');
     codeBlocks.forEach(block => {
         const pre = block.parentElement;
+        if (!pre) return;
+
+        // Ensure pre has relative positioning for absolute buttons
+        pre.style.position = 'relative';
+
         const classes = block.className.split(' ');
         const langClass = classes.find(c => c.startsWith('language-'));
         const lang = langClass ? langClass.replace('language-', '') : 'text';
@@ -277,22 +283,139 @@ function enhanceCodeBlocks(container) {
             const actions = document.createElement('div');
             actions.className = 'code-block-actions';
 
+            // 1. Copy Button
             const copyBtn = document.createElement('button');
             copyBtn.className = 'code-action-btn';
-            copyBtn.textContent = '📋 Copy';
+            copyBtn.innerHTML = '📋 Copy';
+            copyBtn.title = 'Copy code';
             copyBtn.addEventListener('click', () => {
                 navigator.clipboard.writeText(block.innerText).then(() => {
-                    copyBtn.textContent = "✅ Copied!";
-                    setTimeout(() => copyBtn.textContent = "📋 Copy", 1500);
+                    copyBtn.innerHTML = "✅ Copied!";
+                    setTimeout(() => copyBtn.innerHTML = "📋 Copy", 1500);
+                }).catch(() => {
+                    // Fallback for older browsers or non-HTTPS contexts
+                    const textarea = document.createElement('textarea');
+                    textarea.value = block.innerText;
+                    document.body.appendChild(textarea);
+                    textarea.select();
+                    document.execCommand('copy');
+                    document.body.removeChild(textarea);
+                    copyBtn.innerHTML = "✅ Copied!";
+                    setTimeout(() => copyBtn.innerHTML = "📋 Copy", 1500);
                 });
             });
             actions.appendChild(copyBtn);
+
+            // 2. Download Button
+            const downloadBtn = document.createElement('button');
+            downloadBtn.className = 'code-action-btn';
+            downloadBtn.innerHTML = '💾 Download';
+            downloadBtn.title = 'Download code';
+            downloadBtn.addEventListener('click', () => {
+                const ext = getExtensionForLang(lang);
+                const blob = new Blob([block.innerText], { type: 'text/plain' });
+                const url = URL.createObjectURL(blob);
+                const a = document.createElement('a');
+                a.href = url;
+                a.download = `code_${Date.now()}.${ext}`;
+                document.body.appendChild(a);
+                a.click();
+                document.body.removeChild(a);
+                URL.revokeObjectURL(url);
+                downloadBtn.innerHTML = "✅ Saved!";
+                setTimeout(() => downloadBtn.innerHTML = "💾 Download", 1500);
+            });
+            actions.appendChild(downloadBtn);
+
+            // 3. Preview Button
+            const previewBtn = document.createElement('button');
+            previewBtn.className = 'code-action-btn';
+            previewBtn.innerHTML = '👁️ Preview';
+            previewBtn.title = 'Preview code';
+            previewBtn.addEventListener('click', () => {
+                openCodePreview(block.innerText, lang);
+            });
+            actions.appendChild(previewBtn);
+
             pre.prepend(actions);
         }
-        if (!block.classList.contains('hljs') && typeof hljs !== 'undefined') {
-            hljs.highlightElement(block);
+
+        // Highlighting with safety check
+        if (typeof hljs !== 'undefined') {
+            if (!block.classList.contains('hljs')) {
+                try {
+                    hljs.highlightElement(block);
+                } catch (e) {
+                    console.warn("HLJS highlight failed:", e);
+                }
+            }
         }
     });
+}
+
+// Maps language names to file extensions for downloading
+function getExtensionForLang(lang) {
+    const map = {
+        'javascript': 'js', 'js': 'js', 'typescript': 'ts', 'ts': 'ts',
+        'python': 'py', 'py': 'py', 'ruby': 'rb', 'rb': 'rb',
+        'java': 'java', 'c': 'c', 'cpp': 'cpp', 'c++': 'cpp', 'csharp': 'cs', 'cs': 'cs',
+        'go': 'go', 'rust': 'rs', 'php': 'php', 'html': 'html', 'css': 'css',
+        'scss': 'scss', 'sass': 'sass', 'less': 'less', 'json': 'json',
+        'xml': 'xml', 'svg': 'svg', 'sql': 'sql', 'bash': 'sh', 'sh': 'sh',
+        'shell': 'sh', 'yaml': 'yaml', 'yml': 'yml', 'markdown': 'md', 'md': 'md',
+        'dockerfile': 'dockerfile', 'makefile': 'makefile'
+    };
+    return map[lang.toLowerCase()] || 'txt';
+}
+
+// Opens a modal with a sandboxed iframe to preview the code
+function openCodePreview(code, lang) {
+    let modal = document.getElementById('code-preview-modal');
+    if (!modal) {
+        modal = document.createElement('div');
+        modal.id = 'code-preview-modal';
+        modal.className = 'modal';
+        modal.innerHTML = `
+        <div class="modal-content" style="max-width: 90vw; width: 90vw; height: 90vh;">
+        <div class="modal-header">
+        <h3>Code Preview</h3>
+        <button class="modal-close-btn" id="close-preview-modal">✕</button>
+        </div>
+        <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; height: calc(100% - 60px);">
+        <iframe id="preview-iframe" style="flex: 1; border: none; background: #fff; border-radius: 0 0 16px 16px;"></iframe>
+        </div>
+        </div>
+        `;
+        document.body.appendChild(modal);
+
+        document.getElementById('close-preview-modal').addEventListener('click', () => {
+            modal.classList.remove('active');
+        });
+        modal.addEventListener('click', (e) => {
+            if (e.target === modal) modal.classList.remove('active');
+        });
+    }
+
+    modal.querySelector('h3').textContent = `Code Preview (${lang})`;
+    const iframe = document.getElementById('preview-iframe');
+
+    let content = '';
+    const langLower = lang.toLowerCase();
+
+    if (['html', 'svg', 'xml'].includes(langLower)) {
+        content = code; // Render directly
+    } else if (langLower === 'css') {
+        content = `<html><head><style>${code}</style></head><body style="font-family:sans-serif; padding:20px;"><h1>CSS Preview</h1><div class="preview-box">Styled Content</div></body></html>`;
+    } else if (['javascript', 'js', 'typescript', 'ts'].includes(langLower)) {
+        content = `<html><body><script>try { ${code} } catch(e) { document.body.innerHTML = '<pre style="color:red; font-family:monospace;">' + e.message + '</pre>'; } </script></body></html>`;
+    } else {
+        // Fallback: show as formatted dark-mode text
+        const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+        content = `<html><head><style>body{font-family:monospace; padding:20px; background:#1e1e1e; color:#d4d4d4; white-space:pre-wrap; margin:0;} </style></head><body><pre>${escaped}</pre></body></html>`;
+    }
+
+    iframe.srcdoc = content;
+    modal.classList.add('active');
 }
 
 /* ============ Auto-Scroll ============ */

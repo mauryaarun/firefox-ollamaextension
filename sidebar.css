@@ -229,12 +229,37 @@ body.font-lg { font-size: 16px; }
 }
 
 /* Code Actions */
-.code-block-actions { position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 10; }
-.code-action-btn {
-  background: var(--border-strong); color: var(--fg); border: none; border-radius: 6px;
-  padding: 4px 10px; font-size: 10px; cursor: pointer; opacity: 0.8; transition: all var(--transition);
+/* ========== CODE BLOCKS & ACTIONS ========== */
+
+/* Code Actions - Enhanced Visibility */
+.code-block-actions {
+  position: absolute; top: 8px; right: 8px; display: flex; gap: 6px; z-index: 10;
 }
-.code-action-btn:hover { opacity: 1; background: var(--accent); color: var(--bg); }
+.code-action-btn {
+  background: var(--bg-elevated); color: var(--fg); border: 1px solid var(--border);
+  border-radius: 6px; padding: 5px 10px; font-size: 11px; font-weight: 500; cursor: pointer;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.2); transition: all var(--transition);
+  display: inline-flex; align-items: center; gap: 4px;
+}
+.code-action-btn:hover {
+  background: var(--accent); color: var(--bg); border-color: var(--accent);
+  transform: translateY(-1px); box-shadow: 0 4px 8px rgba(0,0,0,0.3);
+}
+
+/* Built-in HLJS Theme (Atom One Dark inspired)
+ Guarantees syntax highlighting colors e*ven if external CSS is missing */
+.hljs { color: #abb2bf; background: transparent !important; }
+.hljs-comment, .hljs-quote { color: #5c6370; font-style: italic; }
+.hljs-doctag, .hljs-keyword, .hljs-formula { color: #c678dd; }
+.hljs-section, .hljs-name, .hljs-selector-tag, .hljs-deletion, .hljs-subst { color: #e06c75; }
+.hljs-literal { color: #56b6c2; }
+.hljs-string, .hljs-regexp, .hljs-addition, .hljs-attribute, .hljs-meta-string { color: #98c379; }
+.hljs-attr, .hljs-variable, .hljs-template-variable, .hljs-type, .hljs-selector-class, .hljs-selector-attr, .hljs-selector-pseudo, .hljs-number { color: #d19a66; }
+.hljs-symbol, .hljs-bullet, .hljs-link, .hljs-meta, .hljs-selector-id, .hljs-title { color: #61aeee; }
+.hljs-built_in, .hljs-title.class_, .hljs-class .hljs-title { color: #e6c07b; }
+.hljs-emphasis { font-style: italic; }
+.hljs-strong { font-weight: bold; }
+.hljs-link { text-decoration: underline; }
 
 /* Bubble Actions & Feedback */
 .bubble-actions { display: flex; gap: 12px; font-size: 11px; margin-top: 6px; opacity: 0; padding: 0 6px; transition: opacity var(--transition); }
