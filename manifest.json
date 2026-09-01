@@ -2,17 +2,18 @@
   "manifest_version": 3,
   "name": "ChatAI🧠 Local Multimodal AI Assistant",
   "description": "Local multimodal AI assistant for Firefox featuring vision, voice, RAG, and Ollama/OpenAI compatibility.",
-  "version": "3.2.6.1",
+  "version": "3.2.8",
   "permissions": [
     "storage",
     "tabs",
     "contextMenus",
     "activeTab",
-    "clipboardWrite"
+    "clipboardWrite",
+    "scripting"
   ],
   "host_permissions": [
-    "http://localhost:11434/",
-    "http://127.0.0.1:11434/",
+    "http://localhost:11434/*",
+    "http://127.0.0.1:11434/*",
     "<all_urls>"
   ],
   "background": {

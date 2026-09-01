@@ -3,9 +3,8 @@ if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = browser.runtime.getURL('lib/pdfjs/pdf.worker.min.js');
 }
 
-/* ============ DOM refs (FIXED: No trailing spaces) ============ */
+/* ============ DOM refs (FIXED: ALL trailing spaces removed) ============ */
 const getEl = (id) => document.getElementById(id);
-
 const chatContainer     = getEl("chat-container");
 const userInput         = getEl("user-input");
 const sendBtn           = getEl("send-btn");
@@ -26,12 +25,14 @@ const filePicker        = getEl("file-picker");
 const attachBtn         = getEl("attach-btn");
 const previewZone       = getEl("input-preview-zone");
 const clearBtn          = getEl("clear-btn");
+const clearInputBtn     = getEl("clear-input-btn");
 const themeChips        = document.querySelectorAll(".theme-chip");
 const statusDot         = getEl("status-indicator");
 const statusText        = getEl("status-text");
 const tokenCounter      = getEl("token-counter");
 const messageCount      = getEl("message-count");
 const newConvBtn        = getEl("new-conversation-btn");
+const newChatBtnHeader  = getEl("new-chat-btn-header");
 const exportBtn         = getEl("export-btn");
 const exportMdBtn       = getEl("export-md-btn");
 const importBtn         = getEl("import-btn");
@@ -82,6 +83,7 @@ const pullModelName     = getEl("pull-model-name");
 const btnConfirmPull    = getEl("btn-confirm-pull");
 const pullProgress      = getEl("pull-progress");
 const newConvBtnHistory = getEl("new-conversation-btn-history");
+const cfgReviewPrompts  = getEl("cfg-review-prompts");
 
 /* ============ State ============ */
 let currentImages = [];
@@ -93,6 +95,7 @@ let isGenerating = false;
 let recognition = null;
 let isRecording = false;
 let ragEnabled = false;
+let isProcessingPrompt = false; // Prevents double-triggering
 
 const DB_NAME = 'LocalAIRAG';
 const DB_VERSION = 2;
@@ -137,26 +140,26 @@ settingsTabs.forEach(tab => {
 browser.storage.local.get([
     "serverUrl", "selectedModel", "theme", "systemPrompt", "temperature", "contextLength",
     "stream", "conversations", "activeConvId", "openaiMode", "apiKey", "showThinking",
-    "autoTts", "fontSize", "ragModel", "ragTopk", "ragChunkSize", "presetPrompt", "ragEnabled"
+    "autoTts", "fontSize", "ragModel", "ragTopk", "ragChunkSize", "presetPrompt", "ragEnabled",
+    "reviewPrompts"
 ]).then((res) => {
     console.log("[Init] Storage loaded");
-    
     if (res.serverUrl && cfgUrl) cfgUrl.value = res.serverUrl;
     else if (cfgUrl) cfgUrl.value = "http://localhost:11434";
-
+    
     if (res.theme) { applyTheme(res.theme); setActiveThemeChip(res.theme); }
     else { applyTheme("auto"); setActiveThemeChip("auto"); }
-
+    
     if (res.systemPrompt && cfgSystemPrompt) cfgSystemPrompt.value = res.systemPrompt;
     if (res.temperature && cfgTemp) { 
         cfgTemp.value = res.temperature; 
-        if(tempVal) tempVal.textContent = res.temperature; 
+        if (tempVal) tempVal.textContent = res.temperature; 
     }
     if (res.contextLength && cfgCtx) cfgCtx.value = res.contextLength;
     if (typeof res.stream === "boolean" && cfgStream) cfgStream.checked = res.stream;
     if (res.openaiMode) { 
-        if(cfgOpenaiMode) cfgOpenaiMode.checked = res.openaiMode; 
-        if(apiKeyGroup) apiKeyGroup.style.display = "block"; 
+        if (cfgOpenaiMode) cfgOpenaiMode.checked = res.openaiMode; 
+        if (apiKeyGroup) apiKeyGroup.style.display = "block"; 
     }
     if (res.apiKey && cfgApiKey) cfgApiKey.value = res.apiKey;
     if (res.showThinking && cfgShowThinking) cfgShowThinking.checked = res.showThinking;
@@ -166,33 +169,34 @@ browser.storage.local.get([
     if (res.ragChunkSize && cfgRagChunkSize) cfgRagChunkSize.value = res.ragChunkSize;
     if (res.ragEnabled) { ragEnabled = res.ragEnabled; updateRagToggleUI(); }
     if (res.presetPrompt && cfgPresetPrompt) cfgPresetPrompt.value = res.presetPrompt;
-
+    if (typeof res.reviewPrompts === "boolean" && cfgReviewPrompts) cfgReviewPrompts.checked = res.reviewPrompts;
+    
     if (res.fontSize) {
         document.body.classList.add(`font-${res.fontSize}`);
         fontSizeBtns.forEach(b => b.classList.toggle("active", b.dataset.size === res.fontSize));
     }
-
+    
     conversations = res.conversations || {};
     activeConvId = res.activeConvId || null;
-
+    
     if (res.selectedModel && cfgModel) {
-        if(currentModelTag) currentModelTag.innerText = res.selectedModel;
+        if (currentModelTag) currentModelTag.innerText = res.selectedModel;
         const opt = document.createElement("option");
         opt.value = res.selectedModel; opt.textContent = res.selectedModel;
         cfgModel.appendChild(opt); cfgModel.value = res.selectedModel;
     }
-
+    
     if (!activeConvId || !conversations[activeConvId]) {
         createConversation(true);
     } else {
         renderHistoryList();
         renderMessages();
     }
-
+    
     fetchOllamaModels();
     checkServerStatus();
     setInterval(checkServerStatus, 30000);
-
+    
     // Check for pending prompts from context menu
     browser.storage.local.get("pendingPrompt").then(r => {
         if (r.pendingPrompt) {
@@ -200,9 +204,10 @@ browser.storage.local.get([
             browser.storage.local.remove("pendingPrompt");
         }
     });
-
+    
     initVoiceRecognition();
     loadRagDocuments();
+    renderSlashPalette();
 });
 
 /* ============ Theme Management ============ */
@@ -214,13 +219,16 @@ function applyTheme(theme) {
         document.body.setAttribute("data-theme", theme);
     }
 }
+
 function setActiveThemeChip(theme) {
     themeChips.forEach(c => c.classList.toggle("active", c.dataset.theme === theme));
 }
+
 window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", () => {
     const active = document.querySelector(".theme-chip.active");
     if (active && active.dataset.theme === "auto") applyTheme("auto");
 });
+
 themeChips.forEach(chip => {
     chip.addEventListener("click", () => {
         const t = chip.dataset.theme;
@@ -239,6 +247,7 @@ if (ragToggleBtn) {
         toast(ragEnabled ? "RAG enabled" : "RAG disabled", "info", 1500);
     });
 }
+
 function updateRagToggleUI() {
     if (!ragToggleBtn || !ragStatus) return;
     ragToggleBtn.classList.toggle("active", ragEnabled);
@@ -258,32 +267,29 @@ function parseMarkdownToHtml(md) {
     }
     return html;
 }
+
 function escapeHtml(s) {
     if (!s) return "";
     return s.replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;");
 }
 
 /* ============ Code Block Enhancements ============ */
-/* ============ Code Block Enhancements ============ */
 function enhanceCodeBlocks(container) {
     const codeBlocks = container.querySelectorAll('pre code');
     codeBlocks.forEach(block => {
         const pre = block.parentElement;
         if (!pre) return;
-
-        // Ensure pre has relative positioning for absolute buttons
+        
         pre.style.position = 'relative';
-
         const classes = block.className.split(' ');
         const langClass = classes.find(c => c.startsWith('language-'));
         const lang = langClass ? langClass.replace('language-', '') : 'text';
         pre.setAttribute('data-lang', lang);
-
+        
         if (!pre.querySelector('.code-block-actions')) {
             const actions = document.createElement('div');
             actions.className = 'code-block-actions';
-
-            // 1. Copy Button
+            
             const copyBtn = document.createElement('button');
             copyBtn.className = 'code-action-btn';
             copyBtn.innerHTML = '📋 Copy';
@@ -293,7 +299,6 @@ function enhanceCodeBlocks(container) {
                     copyBtn.innerHTML = "✅ Copied!";
                     setTimeout(() => copyBtn.innerHTML = "📋 Copy", 1500);
                 }).catch(() => {
-                    // Fallback for older browsers or non-HTTPS contexts
                     const textarea = document.createElement('textarea');
                     textarea.value = block.innerText;
                     document.body.appendChild(textarea);
@@ -305,8 +310,7 @@ function enhanceCodeBlocks(container) {
                 });
             });
             actions.appendChild(copyBtn);
-
-            // 2. Download Button
+            
             const downloadBtn = document.createElement('button');
             downloadBtn.className = 'code-action-btn';
             downloadBtn.innerHTML = '💾 Download';
@@ -326,8 +330,7 @@ function enhanceCodeBlocks(container) {
                 setTimeout(() => downloadBtn.innerHTML = "💾 Download", 1500);
             });
             actions.appendChild(downloadBtn);
-
-            // 3. Preview Button
+            
             const previewBtn = document.createElement('button');
             previewBtn.className = 'code-action-btn';
             previewBtn.innerHTML = '👁️ Preview';
@@ -336,24 +339,18 @@ function enhanceCodeBlocks(container) {
                 openCodePreview(block.innerText, lang);
             });
             actions.appendChild(previewBtn);
-
+            
             pre.prepend(actions);
         }
-
-        // Highlighting with safety check
+        
         if (typeof hljs !== 'undefined') {
             if (!block.classList.contains('hljs')) {
-                try {
-                    hljs.highlightElement(block);
-                } catch (e) {
-                    console.warn("HLJS highlight failed:", e);
-                }
+                try { hljs.highlightElement(block); } catch (e) { console.warn("HLJS highlight failed:", e); }
             }
         }
     });
 }
 
-// Maps language names to file extensions for downloading
 function getExtensionForLang(lang) {
     const map = {
         'javascript': 'js', 'js': 'js', 'typescript': 'ts', 'ts': 'ts',
@@ -368,59 +365,47 @@ function getExtensionForLang(lang) {
     return map[lang.toLowerCase()] || 'txt';
 }
 
-// Opens a modal with a sandboxed iframe to preview the code
 function openCodePreview(code, lang) {
     let modal = document.getElementById('code-preview-modal');
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'code-preview-modal';
         modal.className = 'modal';
-        modal.innerHTML = `
-        <div class="modal-content" style="max-width: 90vw; width: 90vw; height: 90vh;">
-        <div class="modal-header">
-        <h3>Code Preview</h3>
-        <button class="modal-close-btn" id="close-preview-modal">✕</button>
-        </div>
-        <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; height: calc(100% - 60px);">
-        <iframe id="preview-iframe" style="flex: 1; border: none; background: #fff; border-radius: 0 0 16px 16px;"></iframe>
-        </div>
-        </div>
-        `;
+        modal.innerHTML = `<div class="modal-content" style="max-width: 90vw; width: 90vw; height: 90vh;">
+            <div class="modal-header"><h3>Code Preview</h3><button class="modal-close-btn" id="close-preview-modal">✕</button></div>
+            <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; height: calc(100% - 60px);">
+                <iframe id="preview-iframe" style="flex: 1; border: none; background: #fff; border-radius: 0 0 16px 16px;"></iframe>
+            </div>
+        </div>`;
         document.body.appendChild(modal);
-
-        document.getElementById('close-preview-modal').addEventListener('click', () => {
-            modal.classList.remove('active');
-        });
-        modal.addEventListener('click', (e) => {
-            if (e.target === modal) modal.classList.remove('active');
-        });
+        document.getElementById('close-preview-modal').addEventListener('click', () => modal.classList.remove('active'));
+        modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
     }
-
+    
     modal.querySelector('h3').textContent = `Code Preview (${lang})`;
     const iframe = document.getElementById('preview-iframe');
-
     let content = '';
     const langLower = lang.toLowerCase();
-
-    if (['html', 'svg', 'xml'].includes(langLower)) {
-        content = code; // Render directly
-    } else if (langLower === 'css') {
-        content = `<html><head><style>${code}</style></head><body style="font-family:sans-serif; padding:20px;"><h1>CSS Preview</h1><div class="preview-box">Styled Content</div></body></html>`;
-    } else if (['javascript', 'js', 'typescript', 'ts'].includes(langLower)) {
-        content = `<html><body><script>try { ${code} } catch(e) { document.body.innerHTML = '<pre style="color:red; font-family:monospace;">' + e.message + '</pre>'; } </script></body></html>`;
-    } else {
-        // Fallback: show as formatted dark-mode text
+    
+    if (['html', 'svg', 'xml'].includes(langLower)) content = code;
+    else if (langLower === 'css') content = `<html><head><style>${code}</style></head><body style="font-family:sans-serif; padding:20px;"><h1>CSS Preview</h1><div class="preview-box">Styled Content</div></body></html>`;
+    else if (['javascript', 'js', 'typescript', 'ts'].includes(langLower)) content = `<html><body><script>try { ${code} } catch(e) { document.body.innerHTML = '<pre style="color:red; font-family:monospace;">' + e.message + '</pre>'; } </script></body></html>`;
+    else {
         const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         content = `<html><head><style>body{font-family:monospace; padding:20px; background:#1e1e1e; color:#d4d4d4; white-space:pre-wrap; margin:0;} </style></head><body><pre>${escaped}</pre></body></html>`;
     }
-
+    
     iframe.srcdoc = content;
     modal.classList.add('active');
 }
 
 /* ============ Auto-Scroll ============ */
-function autoScrollChat() {
+function autoScrollChat(force = false) {
     if (!chatContainer) return;
+    if (force) {
+        chatContainer.scrollTop = chatContainer.scrollHeight;
+        return;
+    }
     const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
     if (isNearBottom) chatContainer.scrollTop = chatContainer.scrollHeight;
 }
@@ -494,22 +479,22 @@ function renderHistoryList() {
         if (c.title.toLowerCase().includes(searchTerm)) return true;
         return c.messages.some(m => m.text.toLowerCase().includes(searchTerm));
     });
-
+    
     if (filtered.length === 0) {
         historyList.innerHTML = `<div style="text-align:center; padding:30px 20px; color:var(--fg-muted); font-size: 13px;">No conversations found.</div>`;
         return;
     }
-
+    
     filtered.forEach(c => {
         const item = document.createElement("div");
         item.className = "history-item" + (c.id === activeConvId ? " active" : "");
         item.innerHTML = `
-      <div class="history-item-title">${c.pinned ? '📌 ' : ''}${escapeHtml(c.title)}</div>
-      <div class="history-item-actions">
-        <button data-action="pin" title="${c.pinned ? 'Unpin' : 'Pin'}">${c.pinned ? '📌' : '📍'}</button>
-        <button data-action="rename" title="Rename">✏️</button>
-        <button data-action="delete" title="Delete">🗑️</button>
-      </div>`;
+            <div class="history-item-title">${c.pinned ? '📌 ' : ''}${escapeHtml(c.title)}</div>
+            <div class="history-item-actions">
+                <button data-action="pin" title="${c.pinned ? 'Unpin' : 'Pin'}">${c.pinned ? '📌' : '📍'}</button>
+                <button data-action="rename" title="Rename">✏️</button>
+                <button data-action="delete" title="Delete">🗑️</button>
+            </div>`;
         item.addEventListener("click", (e) => {
             if (e.target.closest('.history-item-actions')) return;
             switchConversation(c.id);
@@ -524,6 +509,7 @@ function renderHistoryList() {
 
 if (newConvBtn) newConvBtn.addEventListener("click", () => { createConversation(true); if (historyModal) historyModal.classList.remove('active'); });
 if (newConvBtnHistory) newConvBtnHistory.addEventListener("click", () => { createConversation(true); if (historyModal) historyModal.classList.remove('active'); });
+if (newChatBtnHeader) newChatBtnHeader.addEventListener("click", () => { createConversation(true); });
 if (historyBtn) historyBtn.addEventListener("click", () => { renderHistoryList(); if (historyModal) historyModal.classList.add('active'); });
 if (closeHistory) closeHistory.addEventListener("click", () => { if (historyModal) historyModal.classList.remove('active'); });
 if (searchInput) searchInput.addEventListener("input", renderHistoryList);
@@ -534,10 +520,10 @@ function renderMessages() {
     chatContainer.innerHTML = "";
     const conv = conversations[activeConvId];
     if (!conv) return;
-
+    
     if (chatTitle) chatTitle.textContent = conv.title;
     if (messageCount) messageCount.textContent = `${conv.messages.length} messages`;
-
+    
     if (conv.messages.length === 0) {
         if (emptyState) {
             const empty = emptyState.cloneNode(true);
@@ -545,42 +531,43 @@ function renderMessages() {
             chatContainer.appendChild(empty);
             empty.querySelectorAll(".quick-btn").forEach(btn => {
                 btn.addEventListener("click", () => {
-                    if(userInput) userInput.value = btn.dataset.prompt;
-                    if(userInput) userInput.focus();
+                    if (userInput) userInput.value = btn.dataset.prompt;
+                    if (userInput) userInput.focus();
                     autoResizeTextarea();
                 });
             });
         }
         return;
     }
-
+    
     conv.messages.forEach(m => appendMessage(m.text, m.sender, m.images, false, m.id, m.ts, m.thinking, m.ragSources));
     updateTokenCounter();
-    setTimeout(autoScrollChat, 50);
+    setTimeout(() => autoScrollChat(true), 50);
 }
 
 function appendMessage(text, sender, images = [], save = true, existingId = null, timestamp = null, thinking = null, ragSources = null) {
     const wrapper = document.createElement("div");
     wrapper.classList.add("message-wrapper", sender);
+    
     const msgId = existingId || "msg_" + Date.now() + "_" + Math.random().toString(36).slice(2, 7);
     wrapper.dataset.msgId = msgId;
-
+    
     const msg = document.createElement("div");
     msg.classList.add("message");
-
+    
     if (thinking && cfgShowThinking && cfgShowThinking.checked) {
         const thinkBlock = document.createElement("details");
         thinkBlock.className = "thinking-block";
         thinkBlock.innerHTML = `<summary>💭 Thinking process</summary><div>${parseMarkdownToHtml(thinking)}</div>`;
         msg.appendChild(thinkBlock);
     }
-
+    
     const contentDiv = document.createElement("div");
     contentDiv.className = "message-content";
     contentDiv.innerHTML = sender === "user" ? escapeHtml(text).replace(/\n/g, "<br>") : parseMarkdownToHtml(text);
     msg.appendChild(contentDiv);
     wrapper.appendChild(msg);
-
+    
     if (images && images.length > 0) {
         images.forEach(imgBase64 => {
             const imgEl = document.createElement("img");
@@ -592,7 +579,7 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
             msg.appendChild(imgEl);
         });
     }
-
+    
     if (ragSources && ragSources.length > 0) {
         const sourcesDiv = document.createElement("div");
         sourcesDiv.className = "rag-sources";
@@ -606,31 +593,52 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
         });
         wrapper.appendChild(sourcesDiv);
     }
-
+    
     const time = document.createElement("div");
     time.className = "message-time";
     time.textContent = new Date(timestamp || Date.now()).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
     wrapper.appendChild(time);
-
+    
     const actions = document.createElement("div");
     actions.className = "bubble-actions";
-    const copyBtn = mkBtn("📋 Copy", () => {
-        navigator.clipboard.writeText(msg.innerText).then(() => toast("Copied!", "success", 1200));
-    });
+    
+    const copyBtn = document.createElement("span");
+    copyBtn.className = "action-link";
+    copyBtn.textContent = "📋 Copy";
+    copyBtn.addEventListener("click", () => navigator.clipboard.writeText(msg.innerText).then(() => toast("Copied!", "success", 1200)));
     actions.appendChild(copyBtn);
-
+    
     if (sender === "user") {
-        actions.appendChild(mkBtn("✏️ Edit", () => editAndResend(msgId)));
+        const editBtn = document.createElement("span");
+        editBtn.className = "action-link";
+        editBtn.textContent = "✏️ Edit";
+        editBtn.addEventListener("click", () => editAndResend(msgId));
+        actions.appendChild(editBtn);
+        
+        const forkBtn = document.createElement("span");
+        forkBtn.className = "action-link";
+        forkBtn.textContent = "🔀 Fork";
+        forkBtn.addEventListener("click", () => forkConversation(msgId));
+        actions.appendChild(forkBtn);
     } else {
-        actions.appendChild(mkBtn("🔄 Regen", () => regenerate(msgId)));
-        actions.appendChild(mkBtn("🔊 Read", () => speakText(text)));
+        const regenBtn = document.createElement("span");
+        regenBtn.className = "action-link";
+        regenBtn.textContent = "🔄 Regen";
+        regenBtn.addEventListener("click", () => regenerate(msgId));
+        actions.appendChild(regenBtn);
+        
+        const readBtn = document.createElement("span");
+        readBtn.className = "action-link";
+        readBtn.textContent = "🔊 Read";
+        readBtn.addEventListener("click", () => speakText(text));
+        actions.appendChild(readBtn);
     }
-
+    
     wrapper.appendChild(actions);
     chatContainer.appendChild(wrapper);
     enhanceCodeBlocks(msg);
-    autoScrollChat();
-
+    autoScrollChat(true);
+    
     if (save) {
         const conv = conversations[activeConvId];
         conv.messages.push({
@@ -648,15 +656,20 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
         saveConversations();
         updateTokenCounter();
     }
+    
     return wrapper;
 }
 
-function mkBtn(label, handler) {
-    const b = document.createElement("span");
-    b.className = "action-link";
-    b.textContent = label;
-    b.addEventListener("click", handler);
-    return b;
+function forkConversation(msgId) {
+    const conv = conversations[activeConvId];
+    const idx = conv.messages.findIndex(m => m.id === msgId);
+    if (idx < 0) return;
+    const newId = "conv_" + Date.now();
+    const forkedMessages = conv.messages.slice(0, idx + 1);
+    conversations[newId] = { id: newId, title: conv.title + " (Fork)", messages: forkedMessages, createdAt: Date.now(), pinned: false };
+    saveConversations();
+    switchConversation(newId);
+    toast("Conversation forked 🔀", "success");
 }
 
 async function editAndResend(msgId) {
@@ -664,13 +677,14 @@ async function editAndResend(msgId) {
     const idx = conv.messages.findIndex(m => m.id === msgId);
     if (idx < 0) return;
     const original = conv.messages[idx];
-    const newText = prompt("Edit message:", original.text);
-    if (newText === null || newText.trim() === "") return;
-    conv.messages = conv.messages.slice(0, idx);
-    saveConversations();
-    renderMessages();
-    if(userInput) userInput.value = newText;
-    if(sendBtn) sendBtn.click();
+    showEditModal(original.text, (newText) => {
+        if (!newText || !newText.trim()) return;
+        conv.messages = conv.messages.slice(0, idx);
+        saveConversations();
+        renderMessages();
+        if (userInput) userInput.value = newText;
+        if (sendBtn) sendBtn.click();
+    });
 }
 
 function regenerate(msgId) {
@@ -715,6 +729,7 @@ function downloadBlob(blob, filename) {
     a.click();
     URL.revokeObjectURL(a.href);
 }
+
 function sanitizeFilename(name) { return name.replace(/[^a-z0-9]/gi, '_').substring(0, 50); }
 
 if (importBtn) importBtn.addEventListener("click", () => importFile.click());
@@ -763,6 +778,7 @@ if (cfgOpenaiMode) cfgOpenaiMode.addEventListener("change", () => {
 if (cfgApiKey) cfgApiKey.addEventListener("change", () => browser.storage.local.set({ apiKey: cfgApiKey.value }));
 if (cfgShowThinking) cfgShowThinking.addEventListener("change", () => browser.storage.local.set({ showThinking: cfgShowThinking.checked }));
 if (cfgAutoTts) cfgAutoTts.addEventListener("change", () => browser.storage.local.set({ autoTts: cfgAutoTts.checked }));
+if (cfgReviewPrompts) cfgReviewPrompts.addEventListener("change", () => browser.storage.local.set({ reviewPrompts: cfgReviewPrompts.checked }));
 
 if (btnFetchModels) btnFetchModels.addEventListener("click", fetchOllamaModels);
 if (cfgModel) cfgModel.addEventListener("change", () => {
@@ -778,11 +794,9 @@ if (cfgTemp) cfgTemp.addEventListener("input", () => {
 if (cfgCtx) cfgCtx.addEventListener("change", () => browser.storage.local.set({ contextLength: parseInt(cfgCtx.value) }));
 if (cfgStream) cfgStream.addEventListener("change", () => browser.storage.local.set({ stream: cfgStream.checked }));
 
-// RAG Settings
 if (cfgRagModel) cfgRagModel.addEventListener("change", () => browser.storage.local.set({ ragModel: cfgRagModel.value }));
 if (cfgRagTopk) cfgRagTopk.addEventListener("change", () => browser.storage.local.set({ ragTopk: parseInt(cfgRagTopk.value) }));
 if (cfgRagChunkSize) cfgRagChunkSize.addEventListener("change", () => browser.storage.local.set({ ragChunkSize: parseInt(cfgRagChunkSize.value) }));
-
 if (cfgPresetPrompt) cfgPresetPrompt.addEventListener("change", () => {
     const val = cfgPresetPrompt.value;
     browser.storage.local.set({ presetPrompt: val });
@@ -792,17 +806,12 @@ if (cfgPresetPrompt) cfgPresetPrompt.addEventListener("change", () => {
     }
 });
 
-// Pull Model
 if (btnConfirmPull) btnConfirmPull.addEventListener("click", async () => {
     const modelName = pullModelName ? pullModelName.value.trim() : "";
     if (!modelName) return toast("Enter a model name", "warning");
     if (btnConfirmPull) btnConfirmPull.disabled = true;
     if (pullProgress) pullProgress.textContent = "Starting pull...";
-    browser.runtime.sendMessage({
-        action: "pull-model",
-        baseUrl: cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "",
-        modelName
-    });
+    browser.runtime.sendMessage({ action: "pull-model", baseUrl: cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "", modelName });
 });
 
 browser.runtime.onMessage.addListener((msg) => {
@@ -823,7 +832,7 @@ browser.runtime.onMessage.addListener((msg) => {
     }
 });
 
-// RAG Indexing
+/* ============ RAG Indexing ============ */
 if (ragIndexUrlBtn) ragIndexUrlBtn.addEventListener("click", async () => {
     const url = ragUrlInput ? ragUrlInput.value.trim() : "";
     if (!url) return toast("Enter a URL", "warning");
@@ -852,13 +861,10 @@ if (ragIndexFileBtn) ragIndexFileBtn.addEventListener("click", async () => {
         for (const file of files) {
             if (ragIndexStatus) ragIndexStatus.textContent = `Processing ${file.name}...`;
             let text = "";
-            if (file.type === "application/pdf") {
-                text = await extractTextFromPDF(file);
-            } else if (file.type.startsWith("audio/")) {
-                text = await transcribeAudio(file);
-            } else {
-                text = await file.text();
-            }
+            if (file.type === "application/pdf") text = await extractTextFromPDF(file);
+            else if (file.type.startsWith("audio/")) text = await transcribeAudio(file);
+            else text = await file.text();
+            
             if (!text || text.length < 50) throw new Error(`No extractable text from ${file.name}`);
             await indexContent(file.name, text);
         }
@@ -884,6 +890,7 @@ async function extractTextFromPDF(file) {
     }
     return text;
 }
+
 async function transcribeAudio(file) {
     return `[Audio file: ${file.name} - Transcription requires whisper model]`;
 }
@@ -891,15 +898,9 @@ async function transcribeAudio(file) {
 if (chatTitle) {
     chatTitle.addEventListener("blur", () => {
         const conv = conversations[activeConvId];
-        if (conv) {
-            conv.title = chatTitle.textContent.trim() || "New Chat";
-            saveConversations();
-            renderHistoryList();
-        }
+        if (conv) { conv.title = chatTitle.textContent.trim() || "New Chat"; saveConversations(); renderHistoryList(); }
     });
-    chatTitle.addEventListener("keydown", (e) => {
-        if (e.key === "Enter") { e.preventDefault(); chatTitle.blur(); }
-    });
+    chatTitle.addEventListener("keydown", (e) => { if (e.key === "Enter") { e.preventDefault(); chatTitle.blur(); } });
 }
 
 fontSizeBtns.forEach(btn => {
@@ -913,7 +914,7 @@ fontSizeBtns.forEach(btn => {
     });
 });
 
-/* ============ File Attach ============ */
+/* ============ File Attach & Clipboard Paste ============ */
 if (attachBtn) attachBtn.addEventListener("click", () => { if (filePicker) filePicker.click(); });
 if (filePicker) filePicker.addEventListener("change", async e => {
     await handleFiles(Array.from(e.target.files));
@@ -940,6 +941,7 @@ async function handleFiles(files) {
         }
     }
 }
+
 function fileToBase64(file) {
     return new Promise((res, rej) => {
         const r = new FileReader();
@@ -947,6 +949,44 @@ function fileToBase64(file) {
         r.onerror = rej;
         r.readAsDataURL(file);
     });
+}
+
+if (userInput) {
+    userInput.addEventListener('paste', async (e) => {
+        const items = e.clipboardData.items;
+        for (let i = 0; i < items.length; i++) {
+            if (items[i].type.indexOf('image') !== -1) {
+                e.preventDefault();
+                const blob = items[i].getAsFile();
+                await handleFiles([blob]);
+                toast("Image pasted from clipboard 📋", "success", 1500);
+            }
+        }
+    });
+}
+
+if (clearInputBtn) {
+    clearInputBtn.addEventListener("click", () => {
+        if (userInput) {
+            userInput.value = "";
+            autoResizeTextarea();
+            updateClearButtonVisibility();
+            userInput.focus();
+        }
+    });
+}
+
+if (userInput) {
+    userInput.addEventListener("input", () => {
+        autoResizeTextarea();
+        updateClearButtonVisibility();
+    });
+}
+
+function updateClearButtonVisibility() {
+    if (!clearInputBtn || !userInput) return;
+    if (userInput.value.trim().length > 0) clearInputBtn.classList.add("visible");
+    else clearInputBtn.classList.remove("visible");
 }
 
 /* ============ Image Modal ============ */
@@ -966,29 +1006,22 @@ function initVoiceRecognition() {
     recognition.continuous = false;
     recognition.interimResults = true;
     recognition.lang = "en-US";
+    
     recognition.onresult = (event) => {
         const transcript = Array.from(event.results).map(r => r[0].transcript).join(" ");
-        if (userInput) {
-            userInput.value = transcript;
-            autoResizeTextarea();
-        }
+        if (userInput) { userInput.value = transcript; autoResizeTextarea(); }
     };
     recognition.onend = () => {
         isRecording = false;
-        if (voiceBtn) {
-            voiceBtn.classList.remove("recording");
-            voiceBtn.textContent = "🎤";
-        }
+        if (voiceBtn) { voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤"; }
     };
     recognition.onerror = (e) => {
         toast("Voice error: " + e.error, "error");
         isRecording = false;
-        if (voiceBtn) {
-            voiceBtn.classList.remove("recording");
-            voiceBtn.textContent = "🎤";
-        }
+        if (voiceBtn) { voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤"; }
     };
 }
+
 if (voiceBtn) voiceBtn.addEventListener("click", () => {
     if (!recognition) return toast("Voice not supported", "error");
     if (isRecording) { recognition.stop(); }
@@ -1007,10 +1040,10 @@ function speakText(text) {
     if (speechSynthesis.speaking) { speechSynthesis.cancel(); return; }
     const clean = text.replace(/`[\s\S]*?`/g, " ").replace(/[#*`]/g, " ");
     const utter = new SpeechSynthesisUtterance(clean);
-    utter.rate = 1;
-    utter.pitch = 1;
+    utter.rate = 1; utter.pitch = 1;
     speechSynthesis.speak(utter);
 }
+
 if (ttsToggleBtn) ttsToggleBtn.addEventListener("click", () => {
     const conv = conversations[activeConvId];
     if (!conv) return;
@@ -1038,19 +1071,25 @@ if (promptTemplates) promptTemplates.addEventListener("change", (e) => {
     e.target.value = "";
 });
 
-/* ============ Incoming prompts (CONTEXT MENU HANDLER) ============ */
+/* ============ Incoming prompts (CONTEXT MENU HANDLER - FIXED DOUBLE TRIGGER) ============ */
 browser.runtime.onMessage.addListener(handleIncomingPrompt);
 
 function handleIncomingPrompt(msg) {
-    console.log("[Sidebar] Received pending prompt:", msg);
+    if (isProcessingPrompt) return; // Prevent double execution
+    isProcessingPrompt = true;
     
-    if (msg?.action !== "process-prompt") return;
+    console.log("[Sidebar] Received pending prompt:", msg);
+    if (msg?.action !== "process-prompt") {
+        isProcessingPrompt = false;
+        return;
+    }
+    
+    // Clear storage immediately to prevent re-triggering from storage listener
+    browser.storage.local.remove("pendingPrompt");
 
-    // Clear previous state
     currentImages = [];
     if (previewZone) previewZone.innerHTML = "";
-
-    // Handle Images (if any were passed, e.g., from "Explain Image")
+    
     if (msg.images && msg.images.length > 0) {
         msg.images.forEach(imgUrl => {
             const pill = document.createElement("span");
@@ -1060,17 +1099,16 @@ function handleIncomingPrompt(msg) {
             currentImages.push(imgUrl);
         });
     }
-
-    // Set Text
+    
     if (userInput) {
         userInput.value = msg.text || "";
         autoResizeTextarea();
         userInput.focus();
     }
-
-    // Auto-send if there is content
-    if ((msg.text && msg.text.trim().length > 0) || currentImages.length > 0) {
-        // Small delay to ensure UI is ready
+    
+    const reviewMode = cfgReviewPrompts ? cfgReviewPrompts.checked : false;
+    
+    if (!reviewMode && ((msg.text && msg.text.trim().length > 0) || currentImages.length > 0)) {
         setTimeout(() => {
             if (sendBtn) {
                 console.log("[Sidebar] Triggering send button click");
@@ -1078,7 +1116,11 @@ function handleIncomingPrompt(msg) {
             } else {
                 console.error("[Sidebar] sendBtn is null!");
             }
-        }, 100);
+            isProcessingPrompt = false;
+        }, 150);
+    } else {
+        toast("Prompt loaded. Press Enter to send.", "info");
+        isProcessingPrompt = false;
     }
 }
 
@@ -1103,7 +1145,6 @@ if (userInput) {
             if (sendBtn) sendBtn.click();
         }
     });
-    userInput.addEventListener("input", autoResizeTextarea);
 }
 
 function autoResizeTextarea() {
@@ -1198,14 +1239,8 @@ async function queryRAG(prompt) {
     return new Promise((resolve) => {
         request.onsuccess = () => {
             const allChunks = request.result;
-            if (allChunks.length === 0) {
-                resolve({ context: "", sources: [] });
-                return;
-            }
-            const scored = allChunks.map(chunk => ({
-                ...chunk,
-                score: cosineSimilarity(queryEmbedding, chunk.embedding)
-            }));
+            if (allChunks.length === 0) { resolve({ context: "", sources: [] }); return; }
+            const scored = allChunks.map(chunk => ({ ...chunk, score: cosineSimilarity(queryEmbedding, chunk.embedding) }));
             scored.sort((a, b) => b.score - a.score);
             const topChunks = scored.slice(0, topK);
             const context = topChunks.map(c => `[Source: ${c.source}]\n${c.text}`).join('\n\n---\n\n');
@@ -1244,11 +1279,11 @@ async function loadRagDocuments() {
             const item = document.createElement("div");
             item.className = "rag-doc-item";
             item.innerHTML = `
-        <div class="rag-doc-info">
-          <div class="rag-doc-name">${escapeHtml(doc.name)}</div>
-          <div class="rag-doc-meta">${doc.chunks} chunks · ${new Date(doc.timestamp).toLocaleDateString()}</div>
-        </div>
-        <button class="rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">🗑️</button>`;
+                <div class="rag-doc-info">
+                    <div class="rag-doc-name">${escapeHtml(doc.name)}</div>
+                    <div class="rag-doc-meta">${doc.chunks} chunks · ${new Date(doc.timestamp).toLocaleDateString()}</div>
+                </div>
+                <button class="rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">🗑️</button>`;
             ragDocList.appendChild(item);
         });
         ragDocList.querySelectorAll('.rag-doc-delete').forEach(btn => {
@@ -1286,10 +1321,7 @@ if (ragClearAllBtn) ragClearAllBtn.addEventListener("click", async () => {
     chunksTx.objectStore(STORE_NAME).clear();
     const docsTx = db.transaction(DOCS_STORE, 'readwrite');
     docsTx.objectStore(DOCS_STORE).clear();
-    chunksTx.oncomplete = () => {
-        loadRagDocuments();
-        toast("All documents cleared", "success");
-    };
+    chunksTx.oncomplete = () => { loadRagDocuments(); toast("All documents cleared", "success"); };
 });
 
 /* ============ API Call ============ */
@@ -1298,16 +1330,17 @@ async function askOllama(promptText, images = []) {
     const wrapper = appendMessage("", "assistant");
     const msgDiv = wrapper.querySelector(".message");
     msgDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+    
     if (sendBtn) sendBtn.style.display = "none";
     if (stopBtn) stopBtn.style.display = "inline-flex";
     isGenerating = true;
     currentAbortController = new AbortController();
-
+    
     let accumulated = "";
     let thinkingContent = "";
     let finalPrompt = promptText;
     let ragSources = [];
-
+    
     if (ragEnabled) {
         try {
             toast("Searching knowledge base...", "info", 1500);
@@ -1321,30 +1354,31 @@ async function askOllama(promptText, images = []) {
             toast("RAG search failed: " + e.message, "error");
         }
     }
-
+    
     const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
     const isOpenAIMode = cfgOpenaiMode ? cfgOpenaiMode.checked : false;
     const apiKey = cfgApiKey ? cfgApiKey.value : "";
     const conv = conversations[activeConvId];
-
     const messages = [];
+    
     if (cfgSystemPrompt && cfgSystemPrompt.value.trim()) messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
     const history = conv.messages.slice(0, -1).slice(-10);
     history.forEach(m => {
         if (m.sender === "user" || m.sender === "assistant") messages.push({ role: m.sender, content: m.text });
     });
     messages.push({ role: "user", content: finalPrompt, images: images.length ? images : undefined });
-
+    
     let fetchUrl, fetchBody, fetchHeaders = { "Content-Type": "application/json" };
+    
     if (isOpenAIMode) {
         fetchUrl = `${baseUrl}/v1/chat/completions`;
         if (apiKey) fetchHeaders["Authorization"] = `Bearer ${apiKey}`;
         fetchBody = { model: cfgModel ? cfgModel.value : "gpt-3.5-turbo", messages, temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, stream: cfgStream ? cfgStream.checked : true };
     } else {
         fetchUrl = `${baseUrl}/api/chat`;
-        fetchBody = { model: cfgModel ? cfgModel.value : "gemma4", messages, stream: cfgStream ? cfgStream.checked : true, options: { temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, num_ctx: cfgCtx ? parseInt(cfgCtx.value) : 4096 } };
+        fetchBody = { model: cfgModel ? cfgModel.value : "gemma3", messages, stream: cfgStream ? cfgStream.checked : true, options: { temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, num_ctx: cfgCtx ? parseInt(cfgCtx.value) : 4096 } };
     }
-
+    
     try {
         const res = await fetch(fetchUrl, {
             method: "POST",
@@ -1353,7 +1387,7 @@ async function askOllama(promptText, images = []) {
             body: JSON.stringify(fetchBody)
         });
         if (!res.ok) throw new Error(`Server returned ${res.status}`);
-
+        
         if (cfgStream ? cfgStream.checked : true) {
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
@@ -1373,10 +1407,7 @@ async function askOllama(promptText, images = []) {
                                 if (jsonStr === "[DONE]") break;
                                 const parsed = JSON.parse(jsonStr);
                                 const delta = parsed.choices?.[0]?.delta?.content;
-                                if (delta) {
-                                    accumulated += delta;
-                                    updateStreamingMessage(msgDiv, accumulated, thinkingContent);
-                                }
+                                if (delta) { accumulated += delta; updateStreamingMessage(msgDiv, accumulated, thinkingContent); }
                             }
                         } else {
                             const parsed = JSON.parse(line);
@@ -1394,20 +1425,16 @@ async function askOllama(promptText, images = []) {
             else { accumulated = data.message?.content || ""; thinkingContent = data.message?.thinking || ""; }
             updateStreamingMessage(msgDiv, accumulated, thinkingContent, true);
         }
-
+        
         conv.messages[conv.messages.length - 1] = {
-            id: wrapper.dataset.msgId,
-            text: accumulated,
-            sender: "assistant",
-            images: [],
-            ts: Date.now(),
-            thinking: thinkingContent || null,
-            ragSources: ragSources.length > 0 ? ragSources : null
+            id: wrapper.dataset.msgId, text: accumulated, sender: "assistant", images: [], ts: Date.now(),
+            thinking: thinkingContent || null, ragSources: ragSources.length > 0 ? ragSources : null
         };
         saveConversations();
         updateTokenCounter();
+        
         if (cfgAutoTts && cfgAutoTts.checked && accumulated) speakText(accumulated);
-
+        
         if (ragSources.length > 0) {
             const sourcesDiv = document.createElement("div");
             sourcesDiv.className = "rag-sources";
@@ -1424,14 +1451,7 @@ async function askOllama(promptText, images = []) {
     } catch (err) {
         if (err.name === "AbortError") {
             msgDiv.innerHTML = parseMarkdownToHtml(accumulated + "\n\n*[stopped]*");
-            conv.messages[conv.messages.length - 1] = {
-                id: wrapper.dataset.msgId,
-                text: accumulated,
-                sender: "assistant",
-                images: [],
-                ts: Date.now(),
-                thinking: thinkingContent || null
-            };
+            conv.messages[conv.messages.length - 1] = { id: wrapper.dataset.msgId, text: accumulated, sender: "assistant", images: [], ts: Date.now(), thinking: thinkingContent || null };
             saveConversations();
             toast("Generation stopped", "warning");
         } else {
@@ -1455,7 +1475,7 @@ function updateStreamingMessage(msgDiv, content, thinking, final = false) {
     html += `<div class="message-content">${content ? parseMarkdownToHtml(content) : '<div class="typing-indicator"><span></span><span></span><span></span></div>'}</div>`;
     msgDiv.innerHTML = html;
     enhanceCodeBlocks(msgDiv);
-    autoScrollChat();
+    autoScrollChat(true);
 }
 
 /* ============ Model fetching ============ */
@@ -1464,47 +1484,37 @@ async function fetchOllamaModels() {
         let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
         if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
         if (!baseUrl) { toast("Please enter a valid Server URL first.", "warning"); return; }
-
+        
         const url = `${baseUrl}/api/tags`;
         const res = await fetch(url);
         if (!res.ok) throw new Error(`HTTP ${res.status}: ${res.statusText}`);
         const data = await res.json();
-
+        
         if (cfgModel) cfgModel.innerHTML = "";
         if (cfgRagModel) cfgRagModel.innerHTML = "";
-
+        
         const defaultEmbed = "nomic-embed-text";
         let hasDefaultEmbed = false;
-
+        
         if (data.models && data.models.length > 0) {
             data.models.forEach(m => {
-                if (cfgModel) {
-                    const o = document.createElement("option");
-                    o.value = m.name; o.textContent = m.name;
-                    cfgModel.appendChild(o);
-                }
-                if (cfgRagModel) {
-                    const ragOpt = document.createElement("option");
-                    ragOpt.value = m.name; ragOpt.textContent = m.name;
-                    cfgRagModel.appendChild(ragOpt);
-                }
+                if (cfgModel) { const o = document.createElement("option"); o.value = m.name; o.textContent = m.name; cfgModel.appendChild(o); }
+                if (cfgRagModel) { const ragOpt = document.createElement("option"); ragOpt.value = m.name; ragOpt.textContent = m.name; cfgRagModel.appendChild(ragOpt); }
                 if (m.name === defaultEmbed) hasDefaultEmbed = true;
             });
-
+            
             if (!hasDefaultEmbed && cfgRagModel) {
                 const ragOpt = document.createElement("option");
-                ragOpt.value = defaultEmbed;
-                ragOpt.textContent = `${defaultEmbed} (not installed)`;
+                ragOpt.value = defaultEmbed; ragOpt.textContent = `${defaultEmbed} (not installed)`;
                 cfgRagModel.prepend(ragOpt);
             }
-
+            
             browser.storage.local.get(["selectedModel", "ragModel"]).then(res => {
                 if (res.selectedModel && cfgModel) cfgModel.value = res.selectedModel;
                 if (res.ragModel && cfgRagModel) cfgRagModel.value = res.ragModel;
                 else if (cfgRagModel) cfgRagModel.value = defaultEmbed;
                 if (currentModelTag && cfgModel) currentModelTag.innerText = cfgModel.value;
             });
-
             toast(`Loaded ${data.models.length} models`, "success");
         } else {
             toast("No models found. Click 'Pull' to download one.", "warning");
@@ -1520,7 +1530,6 @@ async function checkServerStatus() {
         let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
         if (baseUrl.endsWith('/')) baseUrl = baseUrl.slice(0, -1);
         if (!baseUrl) return;
-
         const res = await fetch(`${baseUrl}/api/tags`);
         if (res.ok) {
             if (statusDot) statusDot.className = "status-dot online";
@@ -1544,7 +1553,14 @@ function updateTokenCounter() {
     let totalChars = 0;
     conv.messages.forEach(m => { if (m.text) totalChars += m.text.length; });
     const estimatedTokens = Math.round(totalChars / 4);
-    tokenCounter.textContent = `~${estimatedTokens} tokens`;
+    const ctxLimit = cfgCtx ? parseInt(cfgCtx.value) : 4096;
+    const percentage = Math.min((estimatedTokens / ctxLimit) * 100, 100);
+    
+    let color = 'var(--fg-muted)';
+    if (percentage > 80) color = 'var(--warning)';
+    if (percentage > 95) color = 'var(--error)';
+    
+    tokenCounter.innerHTML = `<span style="color:${color}">~${estimatedTokens}</span> / ${ctxLimit} tokens`;
     if (messageCount) messageCount.textContent = `${conv.messages.length} messages`;
 }
 
@@ -1571,18 +1587,13 @@ if (closeShortcuts) closeShortcuts.addEventListener("click", () => { if (shortcu
 if (shortcutsModal) shortcutsModal.addEventListener("click", (e) => { if (e.target === shortcutsModal) shortcutsModal.classList.remove("active"); });
 if (historyModal) historyModal.addEventListener("click", (e) => { if (e.target === historyModal) historyModal.classList.remove("active"); });
 
-
 /* ============ UI/UX ENHANCEMENTS ============ */
-
-// 1. Context Menu Storage Listener (Fixes Context Not Sending when sidebar is already open)
 browser.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.pendingPrompt && changes.pendingPrompt.newValue) {
         handleIncomingPrompt(changes.pendingPrompt.newValue);
-        browser.storage.local.remove("pendingPrompt");
     }
 });
 
-// 2. Scroll to Bottom Button
 const scrollBottomBtn = document.createElement('button');
 scrollBottomBtn.id = 'scroll-bottom-btn';
 scrollBottomBtn.className = 'icon-btn';
@@ -1591,18 +1602,13 @@ scrollBottomBtn.title = 'Scroll to bottom';
 const chatArena = document.querySelector('.chat-arena');
 if (chatArena) {
     chatArena.appendChild(scrollBottomBtn);
-
     chatContainer.addEventListener('scroll', () => {
         const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
         scrollBottomBtn.style.display = isNearBottom ? 'none' : 'inline-flex';
     });
-
-    scrollBottomBtn.addEventListener('click', () => {
-        chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' });
-    });
+    scrollBottomBtn.addEventListener('click', () => { chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }); });
 }
 
-// 3. Drag and Drop Support
 let dragOverlay = document.querySelector('.drag-overlay');
 if (!dragOverlay && chatArena) {
     dragOverlay = document.createElement('div');
@@ -1613,34 +1619,24 @@ if (!dragOverlay && chatArena) {
 
 if (chatArena && dragOverlay) {
     let dragCounter = 0;
-
     chatArena.addEventListener('dragenter', (e) => {
         e.preventDefault();
-        if (e.dataTransfer.types.includes('Files')) {
-            dragCounter++;
-            dragOverlay.classList.add('active');
-        }
+        if (e.dataTransfer.types.includes('Files')) { dragCounter++; dragOverlay.classList.add('active'); }
     });
-
     chatArena.addEventListener('dragleave', (e) => {
         e.preventDefault();
         dragCounter--;
         if (dragCounter === 0) dragOverlay.classList.remove('active');
     });
-
-        chatArena.addEventListener('dragover', (e) => e.preventDefault());
-
-        chatArena.addEventListener('drop', async (e) => {
-            e.preventDefault();
-            dragCounter = 0;
-            dragOverlay.classList.remove('active');
-            if (e.dataTransfer.files.length > 0) {
-                await handleFiles(Array.from(e.dataTransfer.files));
-            }
-        });
+    chatArena.addEventListener('dragover', (e) => e.preventDefault());
+    chatArena.addEventListener('drop', async (e) => {
+        e.preventDefault();
+        dragCounter = 0;
+        dragOverlay.classList.remove('active');
+        if (e.dataTransfer.files.length > 0) await handleFiles(Array.from(e.dataTransfer.files));
+    });
 }
 
-// 4. Slash Commands Palette
 let slashPalette = document.querySelector('.slash-palette');
 if (!slashPalette && document.querySelector('.footer-input-tray')) {
     slashPalette = document.createElement('div');
@@ -1650,27 +1646,27 @@ if (!slashPalette && document.querySelector('.footer-input-tray')) {
 
 const slashCommands = [
     { name: 'summarize', icon: '📋', desc: 'Summarize text', prompt: 'Please summarize the following content concisely:\n\n' },
-{ name: 'explain', icon: '💡', desc: 'Explain concept', prompt: 'Explain the following concept in simple terms:\n\n' },
-{ name: 'translate', icon: '🌐', desc: 'Translate text', prompt: 'Translate the following text to English:\n\n' },
-{ name: 'code-review', icon: '🔍', desc: 'Review code', prompt: 'Review this code for bugs and improvements:\n\n```\n\n```\n' },
-{ name: 'brainstorm', icon: '🎨', desc: 'Brainstorm ideas', prompt: 'Help me brainstorm ideas for: ' },
-{ name: 'refactor', icon: '🛠️', desc: 'Refactor code', prompt: 'Refactor this code to improve readability:\n\n```\n\n```\n' }
+    { name: 'explain', icon: '💡', desc: 'Explain concept', prompt: 'Explain the following concept in simple terms:\n\n' },
+    { name: 'translate', icon: '🌐', desc: 'Translate text', prompt: 'Translate the following text to English:\n\n' },
+    { name: 'code-review', icon: '🔍', desc: 'Review code', prompt: 'Review this code for bugs and improvements:\n\n```\n\n```\n' },
+    { name: 'brainstorm', icon: '🎨', desc: 'Brainstorm ideas', prompt: 'Help me brainstorm ideas for: ' },
+    { name: 'refactor', icon: '🛠️', desc: 'Refactor code', prompt: 'Refactor this code to improve readability:\n\n```\n\n```\n' }
 ];
 
 if (userInput && slashPalette) {
     let html = '<div class="slash-palette-header">Commands</div><div class="slash-palette-list">';
     slashCommands.forEach(cmd => {
         html += `<div class="slash-command" data-prompt="${cmd.prompt.replace(/"/g, '&quot;')}">
-        <div class="slash-command-icon">${cmd.icon}</div>
-        <div class="slash-command-info">
-        <div class="slash-command-name">/${cmd.name}</div>
-        <div class="slash-command-desc">${cmd.desc}</div>
-        </div>
+            <div class="slash-command-icon">${cmd.icon}</div>
+            <div class="slash-command-info">
+                <div class="slash-command-name">/${cmd.name}</div>
+                <div class="slash-command-desc">${cmd.desc}</div>
+            </div>
         </div>`;
     });
     html += '</div>';
     slashPalette.innerHTML = html;
-
+    
     userInput.addEventListener('input', () => {
         if (userInput.value.startsWith('/')) {
             slashPalette.classList.add('active');
@@ -1683,7 +1679,7 @@ if (userInput && slashPalette) {
             slashPalette.classList.remove('active');
         }
     });
-
+    
     slashPalette.addEventListener('click', (e) => {
         const cmd = e.target.closest('.slash-command');
         if (cmd) {
@@ -1693,35 +1689,26 @@ if (userInput && slashPalette) {
             autoResizeTextarea();
         }
     });
-
-    userInput.addEventListener('keydown', (e) => {
-        if (e.key === 'Escape') slashPalette.classList.remove('active');
-    });
+    
+    userInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') slashPalette.classList.remove('active'); });
 }
 
-// 5. Inline Edit Modal (Replaces ugly native prompt)
 function showEditModal(originalText, onSave) {
     let modal = document.querySelector('.inline-edit-modal');
     if (!modal) {
         modal = document.createElement('div');
         modal.className = 'modal inline-edit-modal';
-        modal.innerHTML = `
-        <div class="modal-content inline-edit-content">
-        <div class="modal-header">
-        <h3>Edit Message</h3>
-        <button class="modal-close-btn">✕</button>
-        </div>
-        <div class="modal-body">
-        <textarea class="inline-edit-textarea" style="width:100%; min-height:120px; padding:12px; background:var(--bg-surface); color:var(--fg); border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; line-height:1.5; resize:vertical;"></textarea>
-        </div>
-        <div class="modal-footer">
-        <button class="action-btn cancel-edit">Cancel</button>
-        <button class="action-btn primary save-edit">Save & Resend</button>
-        </div>
-        </div>
-        `;
+        modal.innerHTML = `<div class="modal-content inline-edit-content">
+            <div class="modal-header"><h3>Edit Message</h3><button class="modal-close-btn">✕</button></div>
+            <div class="modal-body">
+                <textarea class="inline-edit-textarea" style="width:100%; min-height:120px; padding:12px; background:var(--bg-surface); color:var(--fg); border:1px solid var(--border); border-radius:8px; font-family:inherit; font-size:14px; line-height:1.5; resize:vertical;"></textarea>
+            </div>
+            <div class="modal-footer">
+                <button class="action-btn cancel-edit">Cancel</button>
+                <button class="action-btn primary save-edit">Save & Resend</button>
+            </div>
+        </div>`;
         document.body.appendChild(modal);
-
         modal.querySelector('.modal-close-btn').addEventListener('click', () => modal.classList.remove('active'));
         modal.querySelector('.cancel-edit').addEventListener('click', () => modal.classList.remove('active'));
         modal.querySelector('.save-edit').addEventListener('click', () => {
@@ -1731,26 +1718,7 @@ function showEditModal(originalText, onSave) {
         });
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
     }
-
     modal.querySelector('.inline-edit-textarea').value = originalText;
     modal.classList.add('active');
     setTimeout(() => modal.querySelector('.inline-edit-textarea').focus(), 100);
 }
-
-// Override the original editAndResend to use the new modal
-async function editAndResend(msgId) {
-    const conv = conversations[activeConvId];
-    const idx = conv.messages.findIndex(m => m.id === msgId);
-    if (idx < 0) return;
-    const original = conv.messages[idx];
-
-    showEditModal(original.text, (newText) => {
-        if (!newText || !newText.trim()) return;
-        conv.messages = conv.messages.slice(0, idx);
-        saveConversations();
-        renderMessages();
-        if(userInput) userInput.value = newText;
-        if(sendBtn) sendBtn.click();
-    });
-}
-
