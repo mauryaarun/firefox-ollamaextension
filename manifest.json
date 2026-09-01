@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChatAI🧠 Local Multimodal AI Assistant",
   "description": "Local multimodal AI assistant for Firefox featuring vision, voice, RAG, and Ollama/OpenAI compatibility.",
-  "version": "3.2.8",
+  "version": "3.2.9",
   "permissions": [
     "storage",
     "tabs",
@@ -34,7 +34,7 @@
   },
   "web_accessible_resources": [
     {
-      "resources": ["preview.html", "rag-worker.js", "lib/*"],
+      "resources": ["preview.html", "rag-worker.js"],
       "matches": ["<all_urls>"]
     }
   ],

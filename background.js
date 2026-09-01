@@ -7,7 +7,7 @@ browser.runtime.onInstalled.addListener(() => {
 function createContextMenus() {
     browser.contextMenus.create({ id: "chatai-root", title: "ChatAI 🧠", contexts: ["page", "selection", "image", "link"] });
 
-    browser.contextMenus.create({ id: "chatai-page-root", parentId: "chatai-root", title: " This Page", contexts: ["page"] });
+    browser.contextMenus.create({ id: "chatai-page-root", parentId: "chatai-root", title: "📄 This Page", contexts: ["page"] });
     browser.contextMenus.create({ id: "chatai-summarize-page", parentId: "chatai-page-root", title: "📋 Summarize Page", contexts: ["page"] });
     browser.contextMenus.create({ id: "chatai-extract-text", parentId: "chatai-page-root", title: "📝 Extract All Text", contexts: ["page"] });
     browser.contextMenus.create({ id: "chatai-translate-page", parentId: "chatai-page-root", title: "🌐 Translate Page", contexts: ["page"] });
@@ -17,21 +17,21 @@ function createContextMenus() {
     browser.contextMenus.create({ id: "chatai-text-root", parentId: "chatai-root", title: "💬 Text Actions", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-explain", parentId: "chatai-text-root", title: "💡 Explain", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-summarize", parentId: "chatai-text-root", title: "📋 Summarize", contexts: ["selection"] });
-    browser.contextMenus.create({ id: "chatai-translate", parentId: "chatai-text-root", title: " Translate to English", contexts: ["selection"] });
+    browser.contextMenus.create({ id: "chatai-translate", parentId: "chatai-text-root", title: "🌐 Translate to English", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-simplify", parentId: "chatai-text-root", title: "✨ Simplify Language", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-expand", parentId: "chatai-text-root", title: "📖 Expand & Elaborate", contexts: ["selection"] });
 
     browser.contextMenus.create({ id: "chatai-tone", parentId: "chatai-text-root", title: "🎭 Rewrite Tone", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-tone-pro", parentId: "chatai-tone", title: "💼 Professional", contexts: ["selection"] });
-    browser.contextMenus.create({ id: "chatai-tone-eli5", parentId: "chatai-tone", title: " ELI5 (Simple)", contexts: ["selection"] });
+    browser.contextMenus.create({ id: "chatai-tone-eli5", parentId: "chatai-tone", title: "👶 ELI5 (Simple)", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-tone-concise", parentId: "chatai-tone", title: "⚡ Concise / TL;DR", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-tone-formal", parentId: "chatai-tone", title: "🎩 Formal / Academic", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-tone-casual", parentId: "chatai-tone", title: "😊 Casual / Friendly", contexts: ["selection"] });
 
     browser.contextMenus.create({ id: "chatai-code-root", parentId: "chatai-root", title: "💻 Code Actions", contexts: ["selection"] });
-    browser.contextMenus.create({ id: "chatai-code-review", parentId: "chatai-code-root", title: " Review & Debug", contexts: ["selection"] });
+    browser.contextMenus.create({ id: "chatai-code-review", parentId: "chatai-code-root", title: "🔍 Review & Debug", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-unit-test", parentId: "chatai-code-root", title: "🧪 Generate Unit Tests", contexts: ["selection"] });
-    browser.contextMenus.create({ id: "chatai-refactor", parentId: "chatai-code-root", title: "️ Refactor & Optimize", contexts: ["selection"] });
+    browser.contextMenus.create({ id: "chatai-refactor", parentId: "chatai-code-root", title: "🛠️ Refactor & Optimize", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-security", parentId: "chatai-code-root", title: "🛡️ Security Audit", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-document-code", parentId: "chatai-code-root", title: "📝 Add Documentation", contexts: ["selection"] });
     browser.contextMenus.create({ id: "chatai-explain-code", parentId: "chatai-code-root", title: "💡 Explain Code", contexts: ["selection"] });
@@ -40,7 +40,7 @@ function createContextMenus() {
     browser.contextMenus.create({ id: "chatai-image-explain", parentId: "chatai-image-root", title: "🔍 Explain Image", contexts: ["image"] });
     browser.contextMenus.create({ id: "chatai-image-ocr", parentId: "chatai-image-root", title: "📝 Extract Text (OCR)", contexts: ["image"] });
     browser.contextMenus.create({ id: "chatai-image-alt", parentId: "chatai-image-root", title: "♿ Generate Alt-Text", contexts: ["image"] });
-    browser.contextMenus.create({ id: "chatai-image-describe", parentId: "chatai-image-root", title: " Detailed Description", contexts: ["image"] });
+    browser.contextMenus.create({ id: "chatai-image-describe", parentId: "chatai-image-root", title: "📖 Detailed Description", contexts: ["image"] });
     browser.contextMenus.create({ id: "chatai-image-objects", parentId: "chatai-image-root", title: "🎯 Identify Objects", contexts: ["image"] });
 
     browser.contextMenus.create({ id: "chatai-link-root", parentId: "chatai-root", title: "🔗 Link Actions", contexts: ["link"] });
@@ -87,38 +87,23 @@ async function fetchUrlText(url) {
     }
 }
 
-// NEW: Extract image as base64 from page context (bypasses CORS)
-async function extractImageFromPage(tabId, imageUrl) {
+// Fetch image via background script to bypass web page CORS
+async function fetchImageAsBase64(imageUrl) {
     try {
-        const results = await browser.scripting.executeScript({
-            target: { tabId },
-            func: (imgSrc) => {
-                return new Promise((resolve, reject) => {
-                    const img = new Image();
-                    img.crossOrigin = "anonymous";
-                    img.onload = () => {
-                        try {
-                            const canvas = document.createElement('canvas');
-                            canvas.width = img.width;
-                            canvas.height = img.height;
-                            const ctx = canvas.getContext('2d');
-                            ctx.drawImage(img, 0, 0);
-                            const dataUrl = canvas.toDataURL('image/jpeg', 0.9);
-                            const base64 = dataUrl.split(',')[1];
-                            resolve(base64);
-                        } catch (e) {
-                            reject(e);
-                        }
-                    };
-                    img.onerror = () => reject(new Error("Failed to load image"));
-                    img.src = imgSrc;
-                });
-            },
-            args: [imageUrl]
+        const res = await fetch(imageUrl);
+        if (!res.ok) throw new Error(`HTTP ${res.status}`);
+        const blob = await res.blob();
+        return new Promise((resolve, reject) => {
+            const reader = new FileReader();
+            reader.onloadend = () => {
+                const base64 = reader.result.split(',')[1];
+                resolve(base64);
+            };
+            reader.onerror = reject;
+            reader.readAsDataURL(blob);
         });
-        return results[0]?.result;
     } catch (e) {
-        console.error("Failed to extract image from page:", e);
+        console.error("Failed to fetch image via background script:", e);
         return null;
     }
 }
@@ -150,7 +135,7 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
     }
 
     const imageActions = ["chatai-image-explain", "chatai-image-ocr", "chatai-image-alt", "chatai-image-describe", "chatai-image-objects"];
-    if (imageActions.includes(info.menuItemId) && info.srcUrl && tab?.id) {
+    if (imageActions.includes(info.menuItemId) && info.srcUrl) {
         const imgMap = {
             "chatai-image-explain": "Explain this image in detail.",
             "chatai-image-ocr": "Extract all visible text from this image exactly as it appears (OCR).",
@@ -159,26 +144,11 @@ browser.contextMenus.onClicked.addListener(async (info, tab) => {
             "chatai-image-objects": "Identify and list all objects, people, and elements visible in this image."
         };
         
-        // Try to extract image from page context (bypasses CORS)
-        const base64 = await extractImageFromPage(tab.id, info.srcUrl);
-        
+        const base64 = await fetchImageAsBase64(info.srcUrl);
         if (base64) {
             await sendPromptToSidebar(imgMap[info.menuItemId], [base64]);
         } else {
-            // Fallback: Try direct fetch (might work for some sites)
-            try {
-                const response = await fetch(info.srcUrl);
-                const blob = await response.blob();
-                const reader = new FileReader();
-                reader.onloadend = async () => {
-                    const base64Fallback = reader.result.split(',')[1];
-                    await sendPromptToSidebar(imgMap[info.menuItemId], [base64Fallback]);
-                };
-                reader.readAsDataURL(blob);
-            } catch (e) {
-                console.error("Failed to fetch image", e);
-                await sendPromptToSidebar(`⚠️ Could not load this image due to CORS restrictions. Try copying the image and pasting it into the chat.`, []);
-            }
+            await sendPromptToSidebar(`⚠️ Could not fetch this image directly. You can copy the image and paste it directly into the chat.`, []);
         }
         return;
     }
@@ -232,7 +202,7 @@ async function sendPromptToSidebar(text, images) {
     }
 }
 
-browser.runtime.onMessage.addListener((msg, sender) => {
+browser.runtime.onMessage.addListener((msg) => {
     if (msg.action === "fetch-url-text") {
         return fetchUrlText(msg.url).then(text => ({ text }));
     }

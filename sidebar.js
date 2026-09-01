@@ -3,7 +3,7 @@ if (typeof pdfjsLib !== 'undefined') {
     pdfjsLib.GlobalWorkerOptions.workerSrc = browser.runtime.getURL('lib/pdfjs/pdf.worker.min.js');
 }
 
-/* ============ DOM refs (FIXED: ALL trailing spaces removed) ============ */
+/* ============ DOM refs ============ */
 const getEl = (id) => document.getElementById(id);
 const chatContainer     = getEl("chat-container");
 const userInput         = getEl("user-input");
@@ -31,7 +31,6 @@ const statusDot         = getEl("status-indicator");
 const statusText        = getEl("status-text");
 const tokenCounter      = getEl("token-counter");
 const messageCount      = getEl("message-count");
-const newConvBtn        = getEl("new-conversation-btn");
 const newChatBtnHeader  = getEl("new-chat-btn-header");
 const exportBtn         = getEl("export-btn");
 const exportMdBtn       = getEl("export-md-btn");
@@ -95,7 +94,7 @@ let isGenerating = false;
 let recognition = null;
 let isRecording = false;
 let ragEnabled = false;
-let isProcessingPrompt = false; // Prevents double-triggering
+let isProcessingPrompt = false;
 
 const DB_NAME = 'LocalAIRAG';
 const DB_VERSION = 2;
@@ -110,6 +109,15 @@ const predefinedPrompts = {
     "summarizer": "You are a summarization expert. Provide concise, accurate summaries of the provided text.",
     "tutor": "You are a patient and knowledgeable tutor. Explain concepts clearly with examples."
 };
+
+const slashCommands = [
+    { name: 'summarize', icon: '📋', desc: 'Summarize text', prompt: 'Please summarize the following content concisely:\n\n' },
+    { name: 'explain', icon: '💡', desc: 'Explain concept', prompt: 'Explain the following concept in simple terms:\n\n' },
+    { name: 'translate', icon: '🌐', desc: 'Translate text', prompt: 'Translate the following text to English:\n\n' },
+    { name: 'code-review', icon: '🔍', desc: 'Review code', prompt: 'Review this code for bugs and improvements:\n\n```\n\n```\n' },
+    { name: 'brainstorm', icon: '🎨', desc: 'Brainstorm ideas', prompt: 'Help me brainstorm ideas for: ' },
+    { name: 'refactor', icon: '🛠️', desc: 'Refactor code', prompt: 'Refactor this code to improve readability:\n\n```\n\n```\n' }
+];
 
 /* ============ Toast System ============ */
 function toast(message, type = "info", duration = 3000) {
@@ -197,7 +205,6 @@ browser.storage.local.get([
     checkServerStatus();
     setInterval(checkServerStatus, 30000);
     
-    // Check for pending prompts from context menu
     browser.storage.local.get("pendingPrompt").then(r => {
         if (r.pendingPrompt) {
             handleIncomingPrompt(r.pendingPrompt);
@@ -207,8 +214,58 @@ browser.storage.local.get([
     
     initVoiceRecognition();
     loadRagDocuments();
-    renderSlashPalette();
+    initSlashPalette();
 });
+
+/* ============ Slash Palette Definition ============ */
+function initSlashPalette() {
+    let slashPalette = document.querySelector('.slash-palette');
+    const tray = document.querySelector('.footer-input-tray');
+    if (!slashPalette && tray) {
+        slashPalette = document.createElement('div');
+        slashPalette.className = 'slash-palette';
+        tray.appendChild(slashPalette);
+    }
+    if (!userInput || !slashPalette) return;
+
+    let html = '<div class="slash-palette-header">Commands</div><div class="slash-palette-list">';
+    slashCommands.forEach(cmd => {
+        html += `<div class="slash-command" data-prompt="${cmd.prompt.replace(/"/g, '&quot;')}">
+            <div class="slash-command-icon">${cmd.icon}</div>
+            <div class="slash-command-info">
+                <div class="slash-command-name">/${cmd.name}</div>
+                <div class="slash-command-desc">${cmd.desc}</div>
+            </div>
+        </div>`;
+    });
+    html += '</div>';
+    slashPalette.innerHTML = html;
+    
+    userInput.addEventListener('input', () => {
+        if (userInput.value.startsWith('/')) {
+            slashPalette.classList.add('active');
+            const filter = userInput.value.slice(1).toLowerCase();
+            slashPalette.querySelectorAll('.slash-command').forEach(el => {
+                const name = el.querySelector('.slash-command-name').textContent.toLowerCase();
+                el.style.display = name.includes(filter) ? 'flex' : 'none';
+            });
+        } else {
+            slashPalette.classList.remove('active');
+        }
+    });
+    
+    slashPalette.addEventListener('click', (e) => {
+        const cmd = e.target.closest('.slash-command');
+        if (cmd) {
+            userInput.value = cmd.dataset.prompt;
+            slashPalette.classList.remove('active');
+            userInput.focus();
+            autoResizeTextarea();
+        }
+    });
+    
+    userInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') slashPalette.classList.remove('active'); });
+}
 
 /* ============ Theme Management ============ */
 function applyTheme(theme) {
@@ -294,20 +351,21 @@ function enhanceCodeBlocks(container) {
             copyBtn.className = 'code-action-btn';
             copyBtn.innerHTML = '📋 Copy';
             copyBtn.title = 'Copy code';
-            copyBtn.addEventListener('click', () => {
-                navigator.clipboard.writeText(block.innerText).then(() => {
-                    copyBtn.innerHTML = "✅ Copied!";
-                    setTimeout(() => copyBtn.innerHTML = "📋 Copy", 1500);
-                }).catch(() => {
-                    const textarea = document.createElement('textarea');
+            copyBtn.addEventListener('click', async () => {
+                try {
+                    await navigator.clipboard.writeText(block.innerText);
+                } catch {
+                    const textarea = document.createElement("textarea");
                     textarea.value = block.innerText;
+                    textarea.style.position = "fixed";
+                    textarea.style.left = "-9999px";
                     document.body.appendChild(textarea);
                     textarea.select();
                     document.execCommand('copy');
                     document.body.removeChild(textarea);
-                    copyBtn.innerHTML = "✅ Copied!";
-                    setTimeout(() => copyBtn.innerHTML = "📋 Copy", 1500);
-                });
+                }
+                copyBtn.innerHTML = "✅ Copied!";
+                setTimeout(() => copyBtn.innerHTML = "📋 Copy", 1500);
             });
             actions.appendChild(copyBtn);
             
@@ -507,7 +565,6 @@ function renderHistoryList() {
     });
 }
 
-if (newConvBtn) newConvBtn.addEventListener("click", () => { createConversation(true); if (historyModal) historyModal.classList.remove('active'); });
 if (newConvBtnHistory) newConvBtnHistory.addEventListener("click", () => { createConversation(true); if (historyModal) historyModal.classList.remove('active'); });
 if (newChatBtnHeader) newChatBtnHeader.addEventListener("click", () => { createConversation(true); });
 if (historyBtn) historyBtn.addEventListener("click", () => { renderHistoryList(); if (historyModal) historyModal.classList.add('active'); });
@@ -1071,32 +1128,33 @@ if (promptTemplates) promptTemplates.addEventListener("change", (e) => {
     e.target.value = "";
 });
 
-/* ============ Incoming prompts (CONTEXT MENU HANDLER - FIXED DOUBLE TRIGGER) ============ */
+/* ============ Incoming Prompts ============ */
 browser.runtime.onMessage.addListener(handleIncomingPrompt);
 
 function handleIncomingPrompt(msg) {
-    if (isProcessingPrompt) return; // Prevent double execution
+    if (isProcessingPrompt) return;
     isProcessingPrompt = true;
     
-    console.log("[Sidebar] Received pending prompt:", msg);
     if (msg?.action !== "process-prompt") {
         isProcessingPrompt = false;
         return;
     }
     
-    // Clear storage immediately to prevent re-triggering from storage listener
     browser.storage.local.remove("pendingPrompt");
 
     currentImages = [];
     if (previewZone) previewZone.innerHTML = "";
     
     if (msg.images && msg.images.length > 0) {
-        msg.images.forEach(imgUrl => {
-            const pill = document.createElement("span");
-            pill.className = "file-pill";
-            pill.textContent = `🖼️ Image`;
-            if (previewZone) previewZone.appendChild(pill);
-            currentImages.push(imgUrl);
+        msg.images.forEach(imgBase64 => {
+            const thumb = document.createElement("img");
+            thumb.src = `data:image/jpeg;base64,${imgBase64}`;
+            thumb.className = "thumb-preview";
+            thumb.style.maxWidth = "200px";
+            thumb.style.marginTop = "6px";
+            thumb.addEventListener("click", () => openImageModal(thumb.src));
+            if (previewZone) previewZone.appendChild(thumb);
+            currentImages.push(imgBase64);
         });
     }
     
@@ -1110,12 +1168,7 @@ function handleIncomingPrompt(msg) {
     
     if (!reviewMode && ((msg.text && msg.text.trim().length > 0) || currentImages.length > 0)) {
         setTimeout(() => {
-            if (sendBtn) {
-                console.log("[Sidebar] Triggering send button click");
-                sendBtn.click();
-            } else {
-                console.error("[Sidebar] sendBtn is null!");
-            }
+            if (sendBtn) sendBtn.click();
             isProcessingPrompt = false;
         }, 150);
     } else {
@@ -1478,7 +1531,7 @@ function updateStreamingMessage(msgDiv, content, thinking, final = false) {
     autoScrollChat(true);
 }
 
-/* ============ Model fetching ============ */
+/* ============ Model Fetching ============ */
 async function fetchOllamaModels() {
     try {
         let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
@@ -1524,7 +1577,7 @@ async function fetchOllamaModels() {
     }
 }
 
-/* ============ Server status ============ */
+/* ============ Server Status ============ */
 async function checkServerStatus() {
     try {
         let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
@@ -1587,7 +1640,7 @@ if (closeShortcuts) closeShortcuts.addEventListener("click", () => { if (shortcu
 if (shortcutsModal) shortcutsModal.addEventListener("click", (e) => { if (e.target === shortcutsModal) shortcutsModal.classList.remove("active"); });
 if (historyModal) historyModal.addEventListener("click", (e) => { if (e.target === historyModal) historyModal.classList.remove("active"); });
 
-/* ============ UI/UX ENHANCEMENTS ============ */
+/* ============ UI/UX Enhancements ============ */
 browser.storage.onChanged.addListener((changes, area) => {
     if (area === 'local' && changes.pendingPrompt && changes.pendingPrompt.newValue) {
         handleIncomingPrompt(changes.pendingPrompt.newValue);
@@ -1635,62 +1688,6 @@ if (chatArena && dragOverlay) {
         dragOverlay.classList.remove('active');
         if (e.dataTransfer.files.length > 0) await handleFiles(Array.from(e.dataTransfer.files));
     });
-}
-
-let slashPalette = document.querySelector('.slash-palette');
-if (!slashPalette && document.querySelector('.footer-input-tray')) {
-    slashPalette = document.createElement('div');
-    slashPalette.className = 'slash-palette';
-    document.querySelector('.footer-input-tray').appendChild(slashPalette);
-}
-
-const slashCommands = [
-    { name: 'summarize', icon: '📋', desc: 'Summarize text', prompt: 'Please summarize the following content concisely:\n\n' },
-    { name: 'explain', icon: '💡', desc: 'Explain concept', prompt: 'Explain the following concept in simple terms:\n\n' },
-    { name: 'translate', icon: '🌐', desc: 'Translate text', prompt: 'Translate the following text to English:\n\n' },
-    { name: 'code-review', icon: '🔍', desc: 'Review code', prompt: 'Review this code for bugs and improvements:\n\n```\n\n```\n' },
-    { name: 'brainstorm', icon: '🎨', desc: 'Brainstorm ideas', prompt: 'Help me brainstorm ideas for: ' },
-    { name: 'refactor', icon: '🛠️', desc: 'Refactor code', prompt: 'Refactor this code to improve readability:\n\n```\n\n```\n' }
-];
-
-if (userInput && slashPalette) {
-    let html = '<div class="slash-palette-header">Commands</div><div class="slash-palette-list">';
-    slashCommands.forEach(cmd => {
-        html += `<div class="slash-command" data-prompt="${cmd.prompt.replace(/"/g, '&quot;')}">
-            <div class="slash-command-icon">${cmd.icon}</div>
-            <div class="slash-command-info">
-                <div class="slash-command-name">/${cmd.name}</div>
-                <div class="slash-command-desc">${cmd.desc}</div>
-            </div>
-        </div>`;
-    });
-    html += '</div>';
-    slashPalette.innerHTML = html;
-    
-    userInput.addEventListener('input', () => {
-        if (userInput.value.startsWith('/')) {
-            slashPalette.classList.add('active');
-            const filter = userInput.value.slice(1).toLowerCase();
-            slashPalette.querySelectorAll('.slash-command').forEach(el => {
-                const name = el.querySelector('.slash-command-name').textContent.toLowerCase();
-                el.style.display = name.includes(filter) ? 'flex' : 'none';
-            });
-        } else {
-            slashPalette.classList.remove('active');
-        }
-    });
-    
-    slashPalette.addEventListener('click', (e) => {
-        const cmd = e.target.closest('.slash-command');
-        if (cmd) {
-            userInput.value = cmd.dataset.prompt;
-            slashPalette.classList.remove('active');
-            userInput.focus();
-            autoResizeTextarea();
-        }
-    });
-    
-    userInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') slashPalette.classList.remove('active'); });
 }
 
 function showEditModal(originalText, onSave) {

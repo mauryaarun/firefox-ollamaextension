@@ -5,12 +5,12 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ChatAI🧠 Local AI Workspace</title>
 
-    <!-- External Libraries (Local with CDN fallbacks if lib/ folder is missing) -->
-    <link rel="stylesheet" href="lib/highlight/styles/atom-one-dark.min.css" onerror="this.href='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/styles/atom-one-dark.min.css'">
-    <script src="lib/highlight/highlight.min.js" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/highlight.js/11.9.0/highlight.min.js'"></script>
-    <script src="lib/marked/marked.min.js" onerror="this.src='https://cdn.jsdelivr.net/npm/marked/marked.min.js'"></script>
-    <script src="lib/dompurify/purify.min.js" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/dompurify/3.0.6/purify.min.js'"></script>
-    <script src="lib/pdfjs/pdf.min.js" onerror="this.src='https://cdnjs.cloudflare.com/ajax/libs/pdf.js/3.11.174/pdf.min.js'"></script>
+    <!-- External Local Libraries (Inline onerror removed to satisfy CSP) -->
+    <link rel="stylesheet" href="lib/highlight/styles/atom-one-dark.min.css">
+    <script src="lib/highlight/highlight.min.js"></script>
+    <script src="lib/marked/marked.min.js"></script>
+    <script src="lib/dompurify/purify.min.js"></script>
+    <script src="lib/pdfjs/pdf.min.js"></script>
 
     <link rel="stylesheet" href="sidebar.css">
 </head>
