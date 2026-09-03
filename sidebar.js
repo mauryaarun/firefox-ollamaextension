@@ -119,6 +119,26 @@ const slashCommands = [
     { name: 'refactor', icon: '🛠️', desc: 'Refactor code', prompt: 'Refactor this code to improve readability:\n\n```\n\n```\n' }
 ];
 
+
+
+
+/* ============ Token Estimation (more accurate than chars/4) ============ */
+function estimateTokens(text) {
+    if (!text) return 0;
+    // Better heuristic: accounts for code, punctuation, CJK
+    const codeBlocks = (text.match(/```[\s\S]*?```/g) || []).length;
+    const cjkChars = (text.match(/[\u4e00-\u9fff\u3040-\u309f\u30a0-\u30ff]/g) || []).length;
+    const words = text.split(/\s+/).filter(w => w.length > 0).length;
+    const punctuation = (text.match(/[^\w\s]/g) || []).length;
+
+    // ~1.3 tokens per word for English, code blocks are denser, CJK is 1:1
+    let tokens = words * 1.3 + codeBlocks * 50 + cjkChars * 0.9 + punctuation * 0.3;
+    return Math.ceil(tokens);
+}
+
+
+
+
 /* ============ Toast System ============ */
 function toast(message, type = "info", duration = 3000) {
     if (!toastContainer) return;
@@ -889,6 +909,51 @@ browser.runtime.onMessage.addListener((msg) => {
     }
 });
 
+
+
+
+
+
+browser.runtime.onMessage.addListener((msg) => {
+    if (msg?.action === "request-file-picker") {
+        // Trigger the hidden file input filtered by kind
+        if (filePicker) {
+            const kind = msg.kind || "pdf";
+            const acceptMap = {
+                audio: "audio/*",
+                video: "video/*",
+                pdf:   "application/pdf,.pdf"
+            };
+            filePicker.setAttribute("accept", acceptMap[kind] || "*/*");
+            filePicker.click();
+            // Reset accept afterwards
+            setTimeout(() => filePicker.removeAttribute("accept"), 500);
+        }
+        return;
+    }
+    if (msg?.action === "toast") {
+        toast(msg.message, msg.type || "info");
+        return;
+    }
+    if (msg?.attachment) {
+        // Non-image attachment from context menu (audio/video/pdf data URL)
+        const { name, kind, dataUrl } = msg.attachment;
+        const pill = document.createElement("span");
+        pill.className = "file-pill";
+        const icon = kind === "audio" ? "🎵" : kind === "video" ? "🎬" : "📕";
+        pill.textContent = `${icon} ${name} (from page)`;
+        if (previewZone) previewZone.appendChild(pill);
+        contextFileText += `\n\n[${kind.toUpperCase()} attachment: ${name}]`;
+        // Open sidebar if closed
+        if (settingsModal) settingsModal.classList.remove("active");
+    }
+});
+
+
+
+
+
+
 /* ============ RAG Indexing ============ */
 if (ragIndexUrlBtn) ragIndexUrlBtn.addEventListener("click", async () => {
     const url = ragUrlInput ? ragUrlInput.value.trim() : "";
@@ -936,21 +1001,51 @@ if (ragIndexFileBtn) ragIndexFileBtn.addEventListener("click", async () => {
 });
 
 async function extractTextFromPDF(file) {
-    if (typeof pdfjsLib === 'undefined') throw new Error("PDF.js library is missing.");
+    if (typeof pdfjsLib === 'undefined') {
+        throw new Error("PDF.js library is missing. Check that lib/pdfjs/pdf.min.js is loaded.");
+    }
+
     const arrayBuffer = await file.arrayBuffer();
     const pdf = await pdfjsLib.getDocument({ data: arrayBuffer }).promise;
     let text = "";
+
     for (let i = 1; i <= pdf.numPages; i++) {
         const page = await pdf.getPage(i);
         const content = await page.getTextContent();
         text += content.items.map(item => item.str).join(" ") + "\n";
     }
+
     return text;
 }
 
+
+
+
 async function transcribeAudio(file) {
-    return `[Audio file: ${file.name} - Transcription requires whisper model]`;
+    const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
+    // Try Ollama whisper-compatible endpoint (if user has whisper model)
+    try {
+        const b64 = await fileToBase64(file);
+        const res = await fetch(`${baseUrl}/api/generate`, {
+            method: "POST",
+            headers: { "Content-Type": "application/json" },
+            body: JSON.stringify({
+                model: "whisper",
+                prompt: "",
+                images: [b64]
+            })
+        });
+        if (res.ok) {
+            const j = await res.json();
+            if (j.response) return j.response;
+        }
+    } catch (_) {}
+    // Fallback placeholder
+    return `[Audio file: ${file.name} — size ${Math.round(file.size/1024)}KB. Install a whisper model in Ollama to enable transcription.]`;
 }
+
+
+
 
 if (chatTitle) {
     chatTitle.addEventListener("blur", () => {
@@ -978,9 +1073,24 @@ if (filePicker) filePicker.addEventListener("change", async e => {
     filePicker.value = "";
 });
 
+
+
+
+
+
+
+
+
+
 async function handleFiles(files) {
+    const MAX_CHARS = 60000; // ~15k tokens - safe for most models
+
     for (const file of files) {
-        if (file.type.startsWith("image/")) {
+        const name = file.name.toLowerCase();
+        const type = file.type;
+
+        /* ---------- Images ---------- */
+        if (type.startsWith("image/")) {
             const b64 = await fileToBase64(file);
             currentImages.push(b64);
             const thumb = document.createElement("img");
@@ -988,16 +1098,120 @@ async function handleFiles(files) {
             thumb.className = "thumb-preview";
             thumb.addEventListener("click", () => openImageModal(thumb.src));
             if (previewZone) previewZone.appendChild(thumb);
-        } else {
-            const txt = await file.text();
+            continue;
+        }
+
+        /* ---------- PDFs (with smart truncation) ---------- */
+        if (type === "application/pdf" || name.endsWith(".pdf")) {
+            const pill = document.createElement("span");
+            pill.className = "file-pill processing";
+            pill.textContent = `📕 ${file.name} (extracting...)`;
+            pill.dataset.fileName = file.name;
+            if (previewZone) previewZone.appendChild(pill);
+
+            try {
+                let text = await extractTextFromPDF(file);
+
+                if (!text || text.length < 20) {
+                    throw new Error("No extractable text found");
+                }
+
+                const originalLength = text.length;
+                let truncated = false;
+
+                // Smart truncation: keep beginning + end (preserves intro & conclusion)
+                if (text.length > MAX_CHARS) {
+                    const halfMax = Math.floor(MAX_CHARS / 2);
+                    const beginning = text.slice(0, halfMax);
+                    const ending = text.slice(-halfMax);
+                    text = `${beginning}\n\n[... ${Math.round((originalLength - MAX_CHARS) / 1000)}k characters truncated for context limits ...]\n\n${ending}`;
+                    truncated = true;
+                    toast(`📕 PDF truncated: ${Math.round(originalLength/1000)}k → ${Math.round(MAX_CHARS/1000)}k chars`, "warning", 4000);
+                } else {
+                    toast(`📕 PDF extracted: ${Math.round(text.length/1000)}k chars`, "success");
+                }
+
+                contextFileText += `\n\n[Content from PDF "${file.name}"${truncated ? " (truncated)" : ""}]:\n${text}`;
+
+                pill.textContent = `📕 ${file.name} ✅ ${Math.round(text.length/1000)}k${truncated ? ' ⚠️' : ''}`;
+                pill.classList.remove("processing");
+                pill.title = truncated
+                ? `Original: ${Math.round(originalLength/1000)}k chars — truncated to fit context window`
+                : `Full PDF extracted`;
+
+            } catch (e) {
+                console.error("[PDF]", e);
+                pill.textContent = `📕 ${file.name} ❌`;
+                pill.classList.remove("processing");
+                toast(`PDF failed: ${e.message}`, "error");
+            }
+            continue;
+        }
+
+        /* ---------- Audio ---------- */
+        if (type.startsWith("audio/")) {
+            const pill = document.createElement("span");
+            pill.className = "file-pill";
+            pill.textContent = `🎵 ${file.name}`;
+            if (previewZone) previewZone.appendChild(pill);
+            contextFileText += `\n\n[Audio: ${file.name}]`;
+            continue;
+        }
+
+        /* ---------- Video ---------- */
+        if (type.startsWith("video/")) {
+            const pill = document.createElement("span");
+            pill.className = "file-pill";
+            pill.textContent = `🎬 ${file.name}`;
+            if (previewZone) previewZone.appendChild(pill);
+            contextFileText += `\n\n[Video: ${file.name}]`;
+            continue;
+        }
+
+        /* ---------- Plain text / other ---------- */
+        try {
+            let txt = await file.text();
+            if (txt.length > MAX_CHARS) {
+                txt = txt.slice(0, MAX_CHARS) + `\n\n[... truncated ${Math.round((txt.length - MAX_CHARS)/1000)}k chars ...]`;
+            }
             contextFileText += `\n\n[Context from ${file.name}]:\n${txt}`;
             const pill = document.createElement("span");
             pill.className = "file-pill";
             pill.textContent = `📄 ${file.name}`;
             if (previewZone) previewZone.appendChild(pill);
+        } catch (e) {
+            toast(`Could not read ${file.name}`, "error");
         }
     }
 }
+
+
+
+
+
+
+
+
+
+
+function updateFilePill(fileName, newText) {
+    if (!previewZone) return;
+    const pills = previewZone.querySelectorAll(".file-pill");
+    for (const p of pills) {
+        if (p.textContent.includes(fileName) || p.dataset.fileName === fileName) {
+            p.textContent = newText;
+            p.classList.remove("processing");
+            return;
+        }
+    }
+}
+
+
+
+
+
+
+
 
 function fileToBase64(file) {
     return new Promise((res, rej) => {
@@ -1131,20 +1345,24 @@ if (promptTemplates) promptTemplates.addEventListener("change", (e) => {
 /* ============ Incoming Prompts ============ */
 browser.runtime.onMessage.addListener(handleIncomingPrompt);
 
+
+
+
+
+
+
+
+
 function handleIncomingPrompt(msg) {
     if (isProcessingPrompt) return;
     isProcessingPrompt = true;
-    
-    if (msg?.action !== "process-prompt") {
-        isProcessingPrompt = false;
-        return;
-    }
-    
-    browser.storage.local.remove("pendingPrompt");
+    if (msg?.action !== "process-prompt") { isProcessingPrompt = false; return; }
 
+    browser.storage.local.remove("pendingPrompt");
     currentImages = [];
     if (previewZone) previewZone.innerHTML = "";
-    
+
+    // Images (vision)
     if (msg.images && msg.images.length > 0) {
         msg.images.forEach(imgBase64 => {
             const thumb = document.createElement("img");
@@ -1157,16 +1375,30 @@ function handleIncomingPrompt(msg) {
             currentImages.push(imgBase64);
         });
     }
-    
+
+    // Non-image attachment pill
+    if (msg.attachment) {
+        const { name, kind } = msg.attachment;
+        const icon = kind === "audio" ? "🎵" : kind === "video" ? "🎬" : "📕";
+        const pill = document.createElement("span");
+        pill.className = "file-pill";
+        pill.textContent = `${icon} ${name} (from page)`;
+        if (previewZone) previewZone.appendChild(pill);
+        contextFileText += `\n\n[${kind.toUpperCase()} attachment: ${name}]`;
+    }
+
     if (userInput) {
         userInput.value = msg.text || "";
         autoResizeTextarea();
         userInput.focus();
     }
-    
+
     const reviewMode = cfgReviewPrompts ? cfgReviewPrompts.checked : false;
-    
-    if (!reviewMode && ((msg.text && msg.text.trim().length > 0) || currentImages.length > 0)) {
+    const hasContent = (msg.text && msg.text.trim().length > 0) ||
+    currentImages.length > 0 ||
+    msg.attachment;
+
+    if (!reviewMode && hasContent) {
         setTimeout(() => {
             if (sendBtn) sendBtn.click();
             isProcessingPrompt = false;
@@ -1176,6 +1408,11 @@ function handleIncomingPrompt(msg) {
         isProcessingPrompt = false;
     }
 }
+
+
+
+
+
 
 /* ============ Send ============ */
 if (sendBtn) sendBtn.addEventListener("click", () => {
@@ -1378,22 +1615,27 @@ if (ragClearAllBtn) ragClearAllBtn.addEventListener("click", async () => {
 });
 
 /* ============ API Call ============ */
+
+
+
+
 async function askOllama(promptText, images = []) {
     appendMessage(promptText, "user", images);
     const wrapper = appendMessage("", "assistant");
     const msgDiv = wrapper.querySelector(".message");
     msgDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
-    
+
     if (sendBtn) sendBtn.style.display = "none";
     if (stopBtn) stopBtn.style.display = "inline-flex";
     isGenerating = true;
     currentAbortController = new AbortController();
-    
+
     let accumulated = "";
     let thinkingContent = "";
     let finalPrompt = promptText;
     let ragSources = [];
-    
+
+    // RAG processing
     if (ragEnabled) {
         try {
             toast("Searching knowledge base...", "info", 1500);
@@ -1407,31 +1649,77 @@ async function askOllama(promptText, images = []) {
             toast("RAG search failed: " + e.message, "error");
         }
     }
-    
+
     const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
     const isOpenAIMode = cfgOpenaiMode ? cfgOpenaiMode.checked : false;
     const apiKey = cfgApiKey ? cfgApiKey.value : "";
     const conv = conversations[activeConvId];
+
     const messages = [];
-    
-    if (cfgSystemPrompt && cfgSystemPrompt.value.trim()) messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
+    if (cfgSystemPrompt && cfgSystemPrompt.value.trim()) {
+        messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
+    }
+
     const history = conv.messages.slice(0, -1).slice(-10);
     history.forEach(m => {
-        if (m.sender === "user" || m.sender === "assistant") messages.push({ role: m.sender, content: m.text });
+        if (m.sender === "user" || m.sender === "assistant") {
+            messages.push({ role: m.sender, content: m.text });
+        }
     });
     messages.push({ role: "user", content: finalPrompt, images: images.length ? images : undefined });
-    
+
+    // ═══════════════ DYNAMIC CONTEXT WINDOW ═══════════════
+    // Calculate total prompt size and auto-expand context if needed
+    const totalChars = messages.reduce((sum, m) => sum + (m.content?.length || 0), 0);
+    const estimatedTokens = Math.ceil(totalChars / 4); // Rough token estimate
+
+    const userCtxLimit = cfgCtx ? parseInt(cfgCtx.value) : 4096;
+    const MAX_SAFE_CONTEXT = 32768; // Safety limit to prevent OOM
+
+    let dynamicCtx = userCtxLimit;
+
+    if (estimatedTokens > userCtxLimit * 0.8) {
+        // Prompt is >80% of context window, expand it
+        dynamicCtx = Math.min(
+            Math.ceil(estimatedTokens * 1.3), // Add 30% headroom
+                              MAX_SAFE_CONTEXT
+        );
+
+        if (dynamicCtx > userCtxLimit) {
+            toast(`Large prompt detected. Expanding context to ${dynamicCtx} tokens`, "info", 2500);
+            console.log(`[Context Auto-Expand] ${estimatedTokens} est. tokens → ${dynamicCtx} num_ctx`);
+        }
+
+        if (estimatedTokens > MAX_SAFE_CONTEXT * 0.9) {
+            toast(`⚠️ Prompt is very large (${estimatedTokens} tokens). Response may be slow or truncated.`, "warning", 4000);
+        }
+    }
+    // ═══════════════════════════════════════════════════════
+
     let fetchUrl, fetchBody, fetchHeaders = { "Content-Type": "application/json" };
-    
+
     if (isOpenAIMode) {
         fetchUrl = `${baseUrl}/v1/chat/completions`;
         if (apiKey) fetchHeaders["Authorization"] = `Bearer ${apiKey}`;
-        fetchBody = { model: cfgModel ? cfgModel.value : "gpt-3.5-turbo", messages, temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, stream: cfgStream ? cfgStream.checked : true };
+        fetchBody = {
+            model: cfgModel ? cfgModel.value : "gpt-3.5-turbo",
+            messages,
+            temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7,
+            stream: cfgStream ? cfgStream.checked : true
+        };
     } else {
         fetchUrl = `${baseUrl}/api/chat`;
-        fetchBody = { model: cfgModel ? cfgModel.value : "gemma3", messages, stream: cfgStream ? cfgStream.checked : true, options: { temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7, num_ctx: cfgCtx ? parseInt(cfgCtx.value) : 4096 } };
+        fetchBody = {
+            model: cfgModel ? cfgModel.value : "gemma3",
+            messages,
+            stream: cfgStream ? cfgStream.checked : true,
+            options: {
+                temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7,
+                num_ctx: dynamicCtx  // ✅ Use dynamic context instead of fixed
+            }
+        };
     }
-    
+
     try {
         const res = await fetch(fetchUrl, {
             method: "POST",
@@ -1439,18 +1727,40 @@ async function askOllama(promptText, images = []) {
             signal: currentAbortController.signal,
             body: JSON.stringify(fetchBody)
         });
-        if (!res.ok) throw new Error(`Server returned ${res.status}`);
-        
+
+        if (!res.ok) {
+            const errorText = await res.text().catch(() => "");
+            let errorMsg = `Server returned ${res.status}`;
+
+            // Provide helpful error messages
+            if (res.status === 400) {
+                if (errorText.includes("context") || errorText.includes("token")) {
+                    errorMsg = `Context window exceeded. Try: (1) Using a model with larger context, (2) Reducing PDF size, or (3) Increasing context window in Settings.`;
+                } else {
+                    errorMsg = `Bad request: ${errorText.slice(0, 200)}`;
+                }
+            } else if (res.status === 413) {
+                errorMsg = "Request too large. The PDF or prompt exceeds server limits.";
+            } else if (res.status === 500) {
+                errorMsg = `Server error: ${errorText.slice(0, 200)}`;
+            }
+
+            throw new Error(errorMsg);
+        }
+
+        // Streaming response handling (unchanged)
         if (cfgStream ? cfgStream.checked : true) {
             const reader = res.body.getReader();
             const decoder = new TextDecoder();
             let buffer = "";
+
             while (true) {
                 const { value, done } = await reader.read();
                 if (done) break;
                 buffer += decoder.decode(value, { stream: true });
                 const lines = buffer.split("\n");
                 buffer = lines.pop();
+
                 for (const line of lines) {
                     if (!line.trim()) continue;
                     try {
@@ -1460,7 +1770,10 @@ async function askOllama(promptText, images = []) {
                                 if (jsonStr === "[DONE]") break;
                                 const parsed = JSON.parse(jsonStr);
                                 const delta = parsed.choices?.[0]?.delta?.content;
-                                if (delta) { accumulated += delta; updateStreamingMessage(msgDiv, accumulated, thinkingContent); }
+                                if (delta) {
+                                    accumulated += delta;
+                                    updateStreamingMessage(msgDiv, accumulated, thinkingContent);
+                                }
                             }
                         } else {
                             const parsed = JSON.parse(line);
@@ -1474,20 +1787,30 @@ async function askOllama(promptText, images = []) {
             }
         } else {
             const data = await res.json();
-            if (isOpenAIMode) { accumulated = data.choices?.[0]?.message?.content || ""; }
-            else { accumulated = data.message?.content || ""; thinkingContent = data.message?.thinking || ""; }
+            if (isOpenAIMode) {
+                accumulated = data.choices?.[0]?.message?.content || "";
+            } else {
+                accumulated = data.message?.content || "";
+                thinkingContent = data.message?.thinking || "";
+            }
             updateStreamingMessage(msgDiv, accumulated, thinkingContent, true);
         }
-        
+
         conv.messages[conv.messages.length - 1] = {
-            id: wrapper.dataset.msgId, text: accumulated, sender: "assistant", images: [], ts: Date.now(),
-            thinking: thinkingContent || null, ragSources: ragSources.length > 0 ? ragSources : null
+            id: wrapper.dataset.msgId,
+            text: accumulated,
+            sender: "assistant",
+            images: [],
+            ts: Date.now(),
+            thinking: thinkingContent || null,
+            ragSources: ragSources.length > 0 ? ragSources : null
         };
+
         saveConversations();
         updateTokenCounter();
-        
+
         if (cfgAutoTts && cfgAutoTts.checked && accumulated) speakText(accumulated);
-        
+
         if (ragSources.length > 0) {
             const sourcesDiv = document.createElement("div");
             sourcesDiv.className = "rag-sources";
@@ -1501,15 +1824,23 @@ async function askOllama(promptText, images = []) {
             });
             wrapper.appendChild(sourcesDiv);
         }
+
     } catch (err) {
         if (err.name === "AbortError") {
             msgDiv.innerHTML = parseMarkdownToHtml(accumulated + "\n\n*[stopped]*");
-            conv.messages[conv.messages.length - 1] = { id: wrapper.dataset.msgId, text: accumulated, sender: "assistant", images: [], ts: Date.now(), thinking: thinkingContent || null };
+            conv.messages[conv.messages.length - 1] = {
+                id: wrapper.dataset.msgId,
+                text: accumulated,
+                sender: "assistant",
+                images: [],
+                ts: Date.now(),
+                thinking: thinkingContent || null
+            };
             saveConversations();
             toast("Generation stopped", "warning");
         } else {
             msgDiv.innerHTML = `<span style="color:var(--error);">⚠️ ${escapeHtml(err.message)}</span>`;
-            toast("Error: " + err.message, "error");
+            toast("Error: " + err.message, "error", 5000);
         }
     } finally {
         if (sendBtn) sendBtn.style.display = "inline-flex";
@@ -1519,6 +1850,18 @@ async function askOllama(promptText, images = []) {
         currentImages = [];
     }
 }
+
+
+
+
+
+
+
+
+
+
+
+
 
 function updateStreamingMessage(msgDiv, content, thinking, final = false) {
     let html = "";
@@ -1586,11 +1929,11 @@ async function checkServerStatus() {
         const res = await fetch(`${baseUrl}/api/tags`);
         if (res.ok) {
             if (statusDot) statusDot.className = "status-dot online";
-            if (statusText) statusText.textContent = "Server online";
+            if (statusText) statusText.textContent = "";
         } else throw new Error();
     } catch {
         if (statusDot) statusDot.className = "status-dot offline";
-        if (statusText) statusText.textContent = "Server offline";
+        if (statusText) statusText.textContent = "";
     }
 }
 
