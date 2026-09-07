@@ -1,8 +1,8 @@
 {
   "manifest_version": 3,
-  "name": "ChatAI🧠 Local Multimodal AI Assistant",
+  "name": "ChatAI🧠 Local Multimodal AI Assistant Sidebar",
   "description": "Local multimodal AI assistant for Firefox featuring vision, voice, RAG, and Ollama/OpenAI compatibility.",
-  "version": "3.3.0",
+  "version": "3.4.0",
   "permissions": [
     "storage",
     "tabs",
@@ -32,9 +32,17 @@
       "48": "icons/chatai48x48.png"
     }
   },
+  "commands": {
+    "_execute_sidebar_action": {
+      "suggested_key": {
+        "default": "Alt+Shift+A"
+      },
+      "description": "Toggle ChatAI Sidebar"
+    }
+  },
   "web_accessible_resources": [
     {
-      "resources": ["preview.html", "rag-worker.js", "lib/pdfjs/*"],
+      "resources": ["preview.html", "preview.js", "rag-worker.js", "lib/pdfjs/*"],
       "matches": ["<all_urls>"]
     }
   ],
@@ -44,9 +52,20 @@
     "48": "icons/chatai48x48.png",
     "96": "icons/chatai96x96.png"
   },
+  "content_scripts": [
+    {
+      "matches": ["<all_urls>"],
+      "js": ["content.js"],
+      "css": ["content.css"],
+      "run_at": "document_idle"
+    }
+  ],
   "browser_specific_settings": {
     "gecko": {
       "id": "ollama-multimodal-sidebar@local",
+      "strict_min_version": "130.0"
+    },
+    "gecko_android": {
       "strict_min_version": "130.0"
     }
   }

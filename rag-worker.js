@@ -7,16 +7,29 @@ self.onmessage = async (event) => {
   if (action === 'embed-chunk') {
     try {
       const { chunk, index, baseUrl, model } = data;
-      const res = await fetch(`${baseUrl}/api/embeddings`, {
+      let res = await fetch(`${baseUrl}/api/embeddings`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
         body: JSON.stringify({ model, prompt: chunk })
       });
-      if (!res.ok) throw new Error(`Embedding API returned ${res.status}`);
-      const result = await res.json();
+      let embedding = null;
+      if (res.ok) {
+        const result = await res.json();
+        embedding = result.embedding;
+      } else {
+        // Fallback to /api/embed (newer Ollama versions)
+        const embedRes = await fetch(`${baseUrl}/api/embed`, {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ model, input: chunk })
+        });
+        if (!embedRes.ok) throw new Error(`Embedding API returned ${res.status}`);
+        const result = await embedRes.json();
+        embedding = result.embeddings?.[0] || result.embedding;
+      }
       self.postMessage({
         action: 'chunk-embedded',
-        data: { index, chunk, embedding: result.embedding }
+        data: { index, chunk, embedding }
       });
     } catch (e) {
       self.postMessage({

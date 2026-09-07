@@ -6,6 +6,8 @@ if (typeof pdfjsLib !== 'undefined') {
 /* ============ DOM refs ============ */
 const getEl = (id) => document.getElementById(id);
 const chatContainer     = getEl("chat-container");
+const chatArena         = document.querySelector(".chat-arena");
+let scrollBottomBtn     = null;
 const userInput         = getEl("user-input");
 const sendBtn           = getEl("send-btn");
 const stopBtn           = getEl("stop-btn");
@@ -15,6 +17,7 @@ const closeSettings     = getEl("close-settings");
 const btnFetchModels    = getEl("btn-fetch-models");
 const cfgUrl            = getEl("cfg-url");
 const cfgModel          = getEl("cfg-model");
+const quickModelSelect  = getEl("quick-model-select");
 const cfgSystemPrompt   = getEl("cfg-system-prompt");
 const cfgTemp           = getEl("cfg-temp");
 const cfgCtx            = getEl("cfg-ctx");
@@ -23,6 +26,7 @@ const tempVal           = getEl("temp-val");
 const currentModelTag   = getEl("current-model-tag");
 const filePicker        = getEl("file-picker");
 const attachBtn         = getEl("attach-btn");
+const attachTabBtn      = getEl("attach-tab-btn");
 const previewZone       = getEl("input-preview-zone");
 const clearBtn          = getEl("clear-btn");
 const clearInputBtn     = getEl("clear-input-btn");
@@ -31,9 +35,11 @@ const statusDot         = getEl("status-indicator");
 const statusText        = getEl("status-text");
 const tokenCounter      = getEl("token-counter");
 const messageCount      = getEl("message-count");
+const contextMeterFill  = getEl("context-meter-fill");
 const newChatBtnHeader  = getEl("new-chat-btn-header");
 const exportBtn         = getEl("export-btn");
 const exportMdBtn       = getEl("export-md-btn");
+const exportHtmlBtn     = getEl("export-html-btn");
 const importBtn         = getEl("import-btn");
 const importFile        = getEl("import-file");
 const cfgOpenaiMode     = getEl("cfg-openai-mode");
@@ -52,6 +58,7 @@ const modalImage        = getEl("modal-image");
 const closeModal        = getEl("close-modal");
 const shortcutsModal    = getEl("shortcuts-modal");
 const closeShortcuts    = getEl("close-shortcuts");
+const helpBtn           = getEl("help-btn");
 const toastContainer    = getEl("toast-container");
 const historyBtn        = getEl("history-btn");
 const historyModal      = getEl("history-modal");
@@ -73,26 +80,59 @@ const ragDocList        = getEl("rag-doc-list");
 const ragClearAllBtn    = getEl("rag-clear-all");
 const ragToggleBtn      = getEl("rag-toggle-btn");
 const ragStatus         = getEl("rag-status");
+const ragDraftArea      = getEl("rag-draft-area");
+const ragDraftInfo      = getEl("rag-draft-info");
+const ragSaveDraftBtn   = getEl("rag-save-draft");
 
-// Settings tabs
+// Settings tabs & Model management
 const settingsTabs      = document.querySelectorAll(".settings-tab");
 const settingsTabContents = document.querySelectorAll(".settings-tab-content");
 const cfgPresetPrompt   = getEl("cfg-preset-prompt");
 const pullModelName     = getEl("pull-model-name");
 const btnConfirmPull    = getEl("btn-confirm-pull");
+const pullProgressBar   = getEl("pull-progress-bar");
+const pullProgressBarContainer = getEl("pull-progress-bar-container");
 const pullProgress      = getEl("pull-progress");
+const installedModelsList = getEl("installed-models-list");
 const newConvBtnHistory = getEl("new-conversation-btn-history");
 const cfgReviewPrompts  = getEl("cfg-review-prompts");
+const cfgFloatingMenu   = getEl("cfg-floating-menu");
+
+/* ============ Icons (Modern SVG System) ============ */
+const ICONS = {
+    copy: `<svg class="icon icon-sm" viewBox="0 0 24 24"><rect width="14" height="14" x="8" y="8" rx="2" ry="2"/><path d="M4 16c-1.1 0-2-.9-2-2V4c0-1.1.9-2 2-2h10c1.1 0 2 .9 2 2"/></svg>`,
+    check: `<svg class="icon icon-sm" viewBox="0 0 24 24" style="stroke:var(--success);"><polyline points="20 6 9 17 4 12"/></svg>`,
+    edit: `<svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M17 3a2.85 2.83 0 1 1 4 4L7.5 20.5 2 22l1.5-5.5Z"/></svg>`,
+    fork: `<svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="6" x2="6" y1="3" y2="15"/><circle cx="18" cy="6" r="3"/><circle cx="6" cy="18" r="3"/><path d="M18 9a9 9 0 0 1-9 9"/></svg>`,
+    regen: `<svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8"/><path d="M21 3v5h-5"/><path d="M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16"/><path d="M8 16H3v5"/></svg>`,
+    read: `<svg class="icon icon-sm" viewBox="0 0 24 24"><polygon points="11 5 6 9 2 9 2 15 6 15 11 19 11 5"/><path d="M15.54 8.46a5 5 0 0 1 0 7.07"/><path d="M19.07 4.93a10 10 0 0 1 0 14.14"/></svg>`,
+    del: `<svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M3 6h18"/><path d="M19 6v14c0 1-1 2-2 2H7c-1 0-2-1-2-2V6"/><path d="M8 6V4c0-1 1-2 2-2h4c1 0 2 1 2 2v2"/></svg>`,
+    pin: `<svg class="icon icon-sm" viewBox="0 0 24 24"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>`,
+    pinFilled: `<svg class="icon icon-sm" viewBox="0 0 24 24" style="fill:currentColor;"><line x1="12" x2="12" y1="17" y2="22"/><path d="M5 17h14v-1.76a2 2 0 0 0-1.11-1.79l-1.78-.9A2 2 0 0 1 15 10.76V6h1a2 2 0 0 0 0-4H8a2 2 0 0 0 0 4h1v4.76a2 2 0 0 1-1.11 1.79l-1.78.9A2 2 0 0 0 5 15.24Z"/></svg>`,
+    download: `<svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M21 15v4a2 2 0 0 1-2 2H5a2 2 0 0 1-2-2v-4"/><polyline points="7 10 12 15 17 10"/><line x1="12" y1="15" x2="12" y2="3"/></svg>`,
+    eye: `<svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M2 12s3-7 10-7 10 7 10 7-3 7-10 7-10-7-10-7Z"/><circle cx="12" cy="12" r="3"/></svg>`,
+    close: `<svg class="icon icon-xs" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>`,
+    mic: `<svg class="icon" viewBox="0 0 24 24"><path d="M12 2a3 3 0 0 0-3 3v7a3 3 0 0 0 6 0V5a3 3 0 0 0-3-3Z"/><path d="M19 10v2a7 7 0 0 1-14 0v-2"/><line x1="12" y1="19" x2="12" y2="22"/></svg>`,
+    stopSquare: `<svg class="icon" viewBox="0 0 24 24"><rect width="12" height="12" x="6" y="6" rx="2"/></svg>`,
+    file: `<svg class="icon icon-sm" viewBox="0 0 24 24"><path d="M14 2H6a2 2 0 0 0-2 2v16a2 2 0 0 0 2 2h12a2 2 0 0 0 2-2V8z"/><polyline points="14 2 14 8 20 8"/></svg>`
+};
 
 /* ============ State ============ */
-let currentImages = [];
-let contextFileText = "";
+let currentImages = [];     // Array of { id, b64, type }
+let attachedFiles = [];     // Array of { id, name, text, label, icon, processing }
+let contextFileText = "";   // Legacy fallback support
 let conversations = {};
 let activeConvId = null;
 let currentAbortController = null;
 let isGenerating = false;
 let recognition = null;
 let isRecording = false;
+let ragWorker = null;
+try {
+    ragWorker = new Worker(browser.runtime.getURL('rag-worker.js'));
+} catch (e) {
+    console.warn("[ChatAI] Web Worker initialization notice:", e);
+}
 let ragEnabled = false;
 let isProcessingPrompt = false;
 
@@ -111,12 +151,12 @@ const predefinedPrompts = {
 };
 
 const slashCommands = [
-    { name: 'summarize', icon: '📋', desc: 'Summarize text', prompt: 'Please summarize the following content concisely:\n\n' },
-    { name: 'explain', icon: '💡', desc: 'Explain concept', prompt: 'Explain the following concept in simple terms:\n\n' },
-    { name: 'translate', icon: '🌐', desc: 'Translate text', prompt: 'Translate the following text to English:\n\n' },
-    { name: 'code-review', icon: '🔍', desc: 'Review code', prompt: 'Review this code for bugs and improvements:\n\n```\n\n```\n' },
-    { name: 'brainstorm', icon: '🎨', desc: 'Brainstorm ideas', prompt: 'Help me brainstorm ideas for: ' },
-    { name: 'refactor', icon: '🛠️', desc: 'Refactor code', prompt: 'Refactor this code to improve readability:\n\n```\n\n```\n' }
+    { name: 'summarize', icon: `<svg class="icon" viewBox="0 0 24 24"><path d="M16 4h2a2 2 0 0 1 2 2v14a2 2 0 0 1-2 2H6a2 2 0 0 1-2-2V6a2 2 0 0 1 2-2h2"/><rect width="8" height="4" x="8" y="2" rx="1" ry="1"/><path d="M9 12h6"/><path d="M9 16h6"/></svg>`, desc: 'Summarize text', prompt: 'Please summarize the following content concisely:\n\n' },
+    { name: 'explain', icon: `<svg class="icon" viewBox="0 0 24 24"><path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5"/><path d="M9 18h6"/><path d="M10 22h4"/></svg>`, desc: 'Explain concept', prompt: 'Explain the following concept in simple terms:\n\n' },
+    { name: 'translate', icon: `<svg class="icon" viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" x2="22" y1="12" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>`, desc: 'Translate text', prompt: 'Translate the following text to English:\n\n' },
+    { name: 'code-review', icon: `<svg class="icon" viewBox="0 0 24 24"><circle cx="11" cy="11" r="8"/><line x1="21" x2="16.65" y1="21" y2="16.65"/><path d="m8 11 2 2 4-4"/></svg>`, desc: 'Review code', prompt: 'Review this code for bugs and improvements:\n\n```\n\n```\n' },
+    { name: 'brainstorm', icon: `<svg class="icon" viewBox="0 0 24 24"><path d="m12 3-1.912 5.813a2 2 0 0 1-1.275 1.275L3 12l5.813 1.912a2 2 0 0 1 1.275 1.275L12 21l1.912-5.813a2 2 0 0 1 1.275-1.275L21 12l-5.813-1.912a2 2 0 0 1-1.275-1.275L12 3Z"/></svg>`, desc: 'Brainstorm ideas', prompt: 'Help me brainstorm ideas for: ' },
+    { name: 'refactor', icon: `<svg class="icon" viewBox="0 0 24 24"><path d="M14.7 6.3a1 1 0 0 0 0 1.4l1.6 1.6a1 1 0 0 0 1.4 0l3.77-3.77a6 6 0 0 1-7.94 7.94l-6.91 6.91a2.12 2.12 0 0 1-3-3l6.91-6.91a6 6 0 0 1 7.94-7.94l-3.76 3.76z"/></svg>`, desc: 'Refactor code', prompt: 'Refactor this code to improve readability:\n\n```\n\n```\n' }
 ];
 
 
@@ -169,7 +209,7 @@ browser.storage.local.get([
     "serverUrl", "selectedModel", "theme", "systemPrompt", "temperature", "contextLength",
     "stream", "conversations", "activeConvId", "openaiMode", "apiKey", "showThinking",
     "autoTts", "fontSize", "ragModel", "ragTopk", "ragChunkSize", "presetPrompt", "ragEnabled",
-    "reviewPrompts"
+    "reviewPrompts", "enableFloatingMenu"
 ]).then((res) => {
     console.log("[Init] Storage loaded");
     if (res.serverUrl && cfgUrl) cfgUrl.value = res.serverUrl;
@@ -198,6 +238,7 @@ browser.storage.local.get([
     if (res.ragEnabled) { ragEnabled = res.ragEnabled; updateRagToggleUI(); }
     if (res.presetPrompt && cfgPresetPrompt) cfgPresetPrompt.value = res.presetPrompt;
     if (typeof res.reviewPrompts === "boolean" && cfgReviewPrompts) cfgReviewPrompts.checked = res.reviewPrompts;
+    if (typeof res.enableFloatingMenu === "boolean" && cfgFloatingMenu) cfgFloatingMenu.checked = res.enableFloatingMenu;
     
     if (res.fontSize) {
         document.body.classList.add(`font-${res.fontSize}`);
@@ -207,11 +248,18 @@ browser.storage.local.get([
     conversations = res.conversations || {};
     activeConvId = res.activeConvId || null;
     
-    if (res.selectedModel && cfgModel) {
+    if (res.selectedModel) {
         if (currentModelTag) currentModelTag.innerText = res.selectedModel;
-        const opt = document.createElement("option");
-        opt.value = res.selectedModel; opt.textContent = res.selectedModel;
-        cfgModel.appendChild(opt); cfgModel.value = res.selectedModel;
+        if (cfgModel) {
+            const opt = document.createElement("option");
+            opt.value = res.selectedModel; opt.textContent = res.selectedModel;
+            cfgModel.appendChild(opt); cfgModel.value = res.selectedModel;
+        }
+        if (quickModelSelect) {
+            const opt = document.createElement("option");
+            opt.value = res.selectedModel; opt.textContent = res.selectedModel;
+            quickModelSelect.appendChild(opt); quickModelSelect.value = res.selectedModel;
+        }
     }
     
     if (!activeConvId || !conversations[activeConvId]) {
@@ -235,6 +283,7 @@ browser.storage.local.get([
     initVoiceRecognition();
     loadRagDocuments();
     initSlashPalette();
+    checkRagDraft();
 });
 
 /* ============ Slash Palette Definition ============ */
@@ -369,7 +418,7 @@ function enhanceCodeBlocks(container) {
             
             const copyBtn = document.createElement('button');
             copyBtn.className = 'code-action-btn';
-            copyBtn.innerHTML = '📋 Copy';
+            copyBtn.innerHTML = `${ICONS.copy}<span>Copy</span>`;
             copyBtn.title = 'Copy code';
             copyBtn.addEventListener('click', async () => {
                 try {
@@ -384,14 +433,14 @@ function enhanceCodeBlocks(container) {
                     document.execCommand('copy');
                     document.body.removeChild(textarea);
                 }
-                copyBtn.innerHTML = "✅ Copied!";
-                setTimeout(() => copyBtn.innerHTML = "📋 Copy", 1500);
+                copyBtn.innerHTML = `${ICONS.check}<span>Copied!</span>`;
+                setTimeout(() => copyBtn.innerHTML = `${ICONS.copy}<span>Copy</span>`, 1500);
             });
             actions.appendChild(copyBtn);
             
             const downloadBtn = document.createElement('button');
             downloadBtn.className = 'code-action-btn';
-            downloadBtn.innerHTML = '💾 Download';
+            downloadBtn.innerHTML = `${ICONS.download}<span>Download</span>`;
             downloadBtn.title = 'Download code';
             downloadBtn.addEventListener('click', () => {
                 const ext = getExtensionForLang(lang);
@@ -404,14 +453,14 @@ function enhanceCodeBlocks(container) {
                 a.click();
                 document.body.removeChild(a);
                 URL.revokeObjectURL(url);
-                downloadBtn.innerHTML = "✅ Saved!";
-                setTimeout(() => downloadBtn.innerHTML = "💾 Download", 1500);
+                downloadBtn.innerHTML = `${ICONS.check}<span>Saved!</span>`;
+                setTimeout(() => downloadBtn.innerHTML = `${ICONS.download}<span>Download</span>`, 1500);
             });
             actions.appendChild(downloadBtn);
             
             const previewBtn = document.createElement('button');
             previewBtn.className = 'code-action-btn';
-            previewBtn.innerHTML = '👁️ Preview';
+            previewBtn.innerHTML = `${ICONS.eye}<span>Preview</span>`;
             previewBtn.title = 'Preview code';
             previewBtn.addEventListener('click', () => {
                 openCodePreview(block.innerText, lang);
@@ -444,13 +493,20 @@ function getExtensionForLang(lang) {
 }
 
 function openCodePreview(code, lang) {
+    const previewId = "prev_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6);
     let modal = document.getElementById('code-preview-modal');
     if (!modal) {
         modal = document.createElement('div');
         modal.id = 'code-preview-modal';
         modal.className = 'modal';
         modal.innerHTML = `<div class="modal-content" style="max-width: 90vw; width: 90vw; height: 90vh;">
-            <div class="modal-header"><h3>Code Preview</h3><button class="modal-close-btn" id="close-preview-modal">✕</button></div>
+            <div class="modal-header">
+                <h3>Code Preview</h3>
+                <div style="display:flex; align-items:center; gap:8px;">
+                    <button class="action-btn" id="open-preview-tab-btn" title="Open preview in a full browser tab">↗️ New Tab</button>
+                    <button class="modal-close-btn" id="close-preview-modal">✕</button>
+                </div>
+            </div>
             <div class="modal-body" style="padding: 0; display: flex; flex-direction: column; height: calc(100% - 60px);">
                 <iframe id="preview-iframe" style="flex: 1; border: none; background: #fff; border-radius: 0 0 16px 16px;"></iframe>
             </div>
@@ -460,14 +516,14 @@ function openCodePreview(code, lang) {
         modal.addEventListener('click', (e) => { if (e.target === modal) modal.classList.remove('active'); });
     }
     
-    modal.querySelector('h3').textContent = `Code Preview (${lang})`;
+    modal.querySelector('h3').textContent = `Code Preview (${lang || 'text'})`;
     const iframe = document.getElementById('preview-iframe');
     let content = '';
-    const langLower = lang.toLowerCase();
+    const langLower = (lang || '').toLowerCase();
     
     if (['html', 'svg', 'xml'].includes(langLower)) content = code;
-    else if (langLower === 'css') content = `<html><head><style>${code}</style></head><body style="font-family:sans-serif; padding:20px;"><h1>CSS Preview</h1><div class="preview-box">Styled Content</div></body></html>`;
-    else if (['javascript', 'js', 'typescript', 'ts'].includes(langLower)) content = `<html><body><script>try { ${code} } catch(e) { document.body.innerHTML = '<pre style="color:red; font-family:monospace;">' + e.message + '</pre>'; } </script></body></html>`;
+    else if (langLower === 'css') content = `<html><head><style>${code}</style></head><body style="font-family:sans-serif; padding:20px;"><h1>CSS Preview</h1><div class="preview-box" style="padding:20px; border:2px dashed #6366f1; border-radius:8px;">Styled Content Box</div></body></html>`;
+    else if (['javascript', 'js', 'typescript', 'ts'].includes(langLower)) content = `<html><body><script>try { ${code} } catch(e) { document.body.innerHTML = '<pre style="color:red; font-family:monospace; padding:16px;">' + e.message + '</pre>'; } <\/script></body></html>`;
     else {
         const escaped = code.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
         content = `<html><head><style>body{font-family:monospace; padding:20px; background:#1e1e1e; color:#d4d4d4; white-space:pre-wrap; margin:0;} </style></head><body><pre>${escaped}</pre></body></html>`;
@@ -475,17 +531,51 @@ function openCodePreview(code, lang) {
     
     iframe.srcdoc = content;
     modal.classList.add('active');
+
+    // Store in background and storage for opening in dedicated tab
+    browser.runtime.sendMessage({ action: "store-preview-data", previewId, html: content }).catch(() => {});
+    const storeObj = {};
+    storeObj[`preview_data_${previewId}`] = content;
+    storeObj[`preview_time_${previewId}`] = Date.now();
+    browser.storage.local.set(storeObj).catch(() => {});
+
+    const tabBtn = document.getElementById('open-preview-tab-btn');
+    if (tabBtn) {
+        tabBtn.onclick = () => {
+            browser.tabs.create({ url: browser.runtime.getURL(`preview.html?id=${previewId}`) });
+        };
+    }
 }
 
-/* ============ Auto-Scroll ============ */
+/* ============ Auto-Scroll Management ============ */
+let isUserScrolledUp = false;
+let scrollRafId = null;
+
+function getScrollElement() {
+    return chatArena || chatContainer;
+}
+
 function autoScrollChat(force = false) {
-    if (!chatContainer) return;
+    const el = getScrollElement();
+    if (!el) return;
+
     if (force) {
-        chatContainer.scrollTop = chatContainer.scrollHeight;
+        isUserScrolledUp = false;
+        el.scrollTop = el.scrollHeight;
+        if (scrollBottomBtn) scrollBottomBtn.style.display = "none";
         return;
     }
-    const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
-    if (isNearBottom) chatContainer.scrollTop = chatContainer.scrollHeight;
+
+    if (isUserScrolledUp) {
+        if (scrollBottomBtn) scrollBottomBtn.style.display = "inline-flex";
+        return;
+    }
+
+    if (scrollRafId) cancelAnimationFrame(scrollRafId);
+    scrollRafId = requestAnimationFrame(() => {
+        el.scrollTop = el.scrollHeight;
+        scrollRafId = null;
+    });
 }
 
 /* ============ Conversation Management ============ */
@@ -551,7 +641,7 @@ function renderHistoryList() {
     if (!historyList) return;
     historyList.innerHTML = "";
     const allConvs = Object.values(conversations).sort((a, b) => (b.pinned === a.pinned ? b.createdAt - a.createdAt : b.pinned ? 1 : -1));
-    const searchTerm = searchInput ? searchInput.value.toLowerCase() : "";
+    const searchTerm = (searchInput?.value || "").toLowerCase();
     const filtered = allConvs.filter(c => {
         if (!searchTerm) return true;
         if (c.title.toLowerCase().includes(searchTerm)) return true;
@@ -567,11 +657,11 @@ function renderHistoryList() {
         const item = document.createElement("div");
         item.className = "history-item" + (c.id === activeConvId ? " active" : "");
         item.innerHTML = `
-            <div class="history-item-title">${c.pinned ? '📌 ' : ''}${escapeHtml(c.title)}</div>
+            <div class="history-item-title">${c.pinned ? `<span style="margin-right:4px;">${ICONS.pinFilled}</span>` : ''}${escapeHtml(c.title)}</div>
             <div class="history-item-actions">
-                <button data-action="pin" title="${c.pinned ? 'Unpin' : 'Pin'}">${c.pinned ? '📌' : '📍'}</button>
-                <button data-action="rename" title="Rename">✏️</button>
-                <button data-action="delete" title="Delete">🗑️</button>
+                <button data-action="pin" title="${c.pinned ? 'Unpin' : 'Pin'}">${c.pinned ? ICONS.pinFilled : ICONS.pin}</button>
+                <button data-action="rename" title="Rename">${ICONS.edit}</button>
+                <button data-action="delete" title="Delete">${ICONS.del}</button>
             </div>`;
         item.addEventListener("click", (e) => {
             if (e.target.closest('.history-item-actions')) return;
@@ -647,8 +737,9 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
     
     if (images && images.length > 0) {
         images.forEach(imgBase64 => {
+            if (!imgBase64 || typeof imgBase64 !== "string") return;
             const imgEl = document.createElement("img");
-            imgEl.src = `data:image/jpeg;base64,${imgBase64}`;
+            imgEl.src = imgBase64.startsWith("data:") ? imgBase64 : `data:image/jpeg;base64,${imgBase64}`;
             imgEl.classList.add("thumb-preview");
             imgEl.style.maxWidth = "200px";
             imgEl.style.marginTop = "6px";
@@ -681,35 +772,58 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
     
     const copyBtn = document.createElement("span");
     copyBtn.className = "action-link";
-    copyBtn.textContent = "📋 Copy";
-    copyBtn.addEventListener("click", () => navigator.clipboard.writeText(msg.innerText).then(() => toast("Copied!", "success", 1200)));
+    copyBtn.innerHTML = `${ICONS.copy}<span>Copy</span>`;
+    copyBtn.addEventListener("click", () => {
+        navigator.clipboard.writeText(msg.innerText).then(() => {
+            copyBtn.innerHTML = `${ICONS.check}<span>Copied!</span>`;
+            setTimeout(() => { copyBtn.innerHTML = `${ICONS.copy}<span>Copy</span>`; }, 1500);
+            toast("Copied!", "success", 1200);
+        });
+    });
     actions.appendChild(copyBtn);
     
     if (sender === "user") {
         const editBtn = document.createElement("span");
         editBtn.className = "action-link";
-        editBtn.textContent = "✏️ Edit";
+        editBtn.innerHTML = `${ICONS.edit}<span>Edit</span>`;
         editBtn.addEventListener("click", () => editAndResend(msgId));
         actions.appendChild(editBtn);
         
         const forkBtn = document.createElement("span");
         forkBtn.className = "action-link";
-        forkBtn.textContent = "🔀 Fork";
+        forkBtn.innerHTML = `${ICONS.fork}<span>Fork</span>`;
         forkBtn.addEventListener("click", () => forkConversation(msgId));
         actions.appendChild(forkBtn);
     } else {
         const regenBtn = document.createElement("span");
         regenBtn.className = "action-link";
-        regenBtn.textContent = "🔄 Regen";
+        regenBtn.innerHTML = `${ICONS.regen}<span>Regen</span>`;
         regenBtn.addEventListener("click", () => regenerate(msgId));
         actions.appendChild(regenBtn);
         
         const readBtn = document.createElement("span");
         readBtn.className = "action-link";
-        readBtn.textContent = "🔊 Read";
+        readBtn.innerHTML = `${ICONS.read}<span>Read</span>`;
         readBtn.addEventListener("click", () => speakText(text));
         actions.appendChild(readBtn);
     }
+    
+    const delMsgBtn = document.createElement("span");
+    delMsgBtn.className = "action-link danger-link";
+    delMsgBtn.innerHTML = `${ICONS.del}<span>Del</span>`;
+    delMsgBtn.title = "Delete this message";
+    delMsgBtn.addEventListener("click", () => {
+        if (!confirm("Delete this message?")) return;
+        const conv = conversations[activeConvId];
+        if (conv) {
+            conv.messages = conv.messages.filter(m => m.id !== msgId);
+            saveConversations();
+            updateTokenCounter();
+        }
+        wrapper.remove();
+        toast("Message deleted", "info", 1200);
+    });
+    actions.appendChild(delMsgBtn);
     
     wrapper.appendChild(actions);
     chatContainer.appendChild(wrapper);
@@ -799,6 +913,23 @@ if (exportMdBtn) exportMdBtn.addEventListener("click", () => {
     toast("Exported as Markdown", "success");
 });
 
+if (exportHtmlBtn) exportHtmlBtn.addEventListener("click", () => {
+    const conv = conversations[activeConvId];
+    if (!conv || conv.messages.length === 0) return toast("No messages to export", "warning");
+    const title = conv.title || "Chat Transcript";
+    let bodyHtml = "";
+    conv.messages.forEach(m => {
+        const author = m.sender === "user" ? "You" : "AI";
+        const time = new Date(m.ts).toLocaleTimeString();
+        const content = m.sender === "user" ? escapeHtml(m.text).replace(/\n/g, "<br>") : parseMarkdownToHtml(m.text);
+        bodyHtml += `<div class="msg ${m.sender}" style="margin-bottom:18px; padding:14px 18px; border-radius:12px; ${m.sender === 'user' ? 'background:#4f46e5; color:#fff; margin-left:15%;' : 'background:#17171c; border:1px solid #2c2c34; color:#ececf1; margin-right:15%;'}"><div style="font-size:11px; opacity:0.75; margin-bottom:6px;"><strong>${author}</strong> · ${time}</div><div>${content}</div></div>`;
+    });
+    const doc = `<!DOCTYPE html><html><head><meta charset="utf-8"><title>${escapeHtml(title)}</title><style>body{font-family:-apple-system,BlinkMacSystemFont,"Segoe UI",Roboto,sans-serif; background:#0f0f13; color:#ececf1; padding:24px; max-width:800px; margin:0 auto; line-height:1.6;} pre{background:#0d1117; color:#e6edf3; padding:12px; border-radius:8px; overflow-x:auto;} code{font-family:monospace;}</style></head><body><h1>🧠 ${escapeHtml(title)}</h1><hr style="border:0; border-top:1px solid #2c2c34; margin:16px 0 24px;">${bodyHtml}</body></html>`;
+    const blob = new Blob([doc], { type: "text/html" });
+    downloadBlob(blob, `${sanitizeFilename(conv.title)}.html`);
+    toast("Exported as HTML transcript", "success");
+});
+
 function downloadBlob(blob, filename) {
     const a = document.createElement("a");
     a.href = URL.createObjectURL(blob);
@@ -856,11 +987,20 @@ if (cfgApiKey) cfgApiKey.addEventListener("change", () => browser.storage.local.
 if (cfgShowThinking) cfgShowThinking.addEventListener("change", () => browser.storage.local.set({ showThinking: cfgShowThinking.checked }));
 if (cfgAutoTts) cfgAutoTts.addEventListener("change", () => browser.storage.local.set({ autoTts: cfgAutoTts.checked }));
 if (cfgReviewPrompts) cfgReviewPrompts.addEventListener("change", () => browser.storage.local.set({ reviewPrompts: cfgReviewPrompts.checked }));
+if (cfgFloatingMenu) cfgFloatingMenu.addEventListener("change", () => browser.storage.local.set({ enableFloatingMenu: cfgFloatingMenu.checked }));
 
 if (btnFetchModels) btnFetchModels.addEventListener("click", fetchOllamaModels);
 if (cfgModel) cfgModel.addEventListener("change", () => {
     browser.storage.local.set({ selectedModel: cfgModel.value });
+    if (quickModelSelect) quickModelSelect.value = cfgModel.value;
     if (currentModelTag) currentModelTag.innerText = cfgModel.value;
+});
+if (quickModelSelect) quickModelSelect.addEventListener("change", () => {
+    const chosen = quickModelSelect.value;
+    if (cfgModel) cfgModel.value = chosen;
+    browser.storage.local.set({ selectedModel: chosen });
+    if (currentModelTag) currentModelTag.innerText = chosen;
+    toast(`Model: ${chosen}`, "info", 1500);
 });
 if (cfgUrl) cfgUrl.addEventListener("change", () => browser.storage.local.set({ serverUrl: cfgUrl.value }));
 if (cfgSystemPrompt) cfgSystemPrompt.addEventListener("change", () => browser.storage.local.set({ systemPrompt: cfgSystemPrompt.value }));
@@ -888,6 +1028,8 @@ if (btnConfirmPull) btnConfirmPull.addEventListener("click", async () => {
     if (!modelName) return toast("Enter a model name", "warning");
     if (btnConfirmPull) btnConfirmPull.disabled = true;
     if (pullProgress) pullProgress.textContent = "Starting pull...";
+    if (pullProgressBarContainer) pullProgressBarContainer.style.display = "block";
+    if (pullProgressBar) pullProgressBar.style.width = "0%";
     browser.runtime.sendMessage({ action: "pull-model", baseUrl: cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "", modelName });
 });
 
@@ -895,17 +1037,25 @@ browser.runtime.onMessage.addListener((msg) => {
     if (msg.action === "pull-progress") {
         if (msg.data.status && pullProgress) pullProgress.textContent = msg.data.status;
         if (msg.data.total && msg.data.completed && pullProgress) {
-            const pct = ((msg.data.completed / msg.data.total) * 100).toFixed(1);
-            pullProgress.textContent += ` (${pct}%)`;
+            const pct = Math.min(((msg.data.completed / msg.data.total) * 100), 100).toFixed(1);
+            pullProgress.textContent = `${msg.data.status || 'Downloading'} (${pct}%)`;
+            if (pullProgressBar) pullProgressBar.style.width = `${pct}%`;
         }
     } else if (msg.action === "pull-complete") {
         if (pullProgress) pullProgress.textContent = "✅ Pull complete! Fetching models...";
+        if (pullProgressBar) pullProgressBar.style.width = "100%";
         if (btnConfirmPull) btnConfirmPull.disabled = false;
         fetchOllamaModels();
-        setTimeout(() => { if (pullProgress) pullProgress.textContent = ""; }, 2000);
+        setTimeout(() => {
+            if (pullProgress) pullProgress.textContent = "";
+            if (pullProgressBarContainer) pullProgressBarContainer.style.display = "none";
+        }, 3000);
     } else if (msg.action === "pull-error") {
         if (pullProgress) pullProgress.textContent = `❌ Error: ${msg.error}`;
+        if (pullProgressBarContainer) pullProgressBarContainer.style.display = "none";
         if (btnConfirmPull) btnConfirmPull.disabled = false;
+    } else if (msg.action === "rag-stage-draft") {
+        checkRagDraft();
     }
 });
 
@@ -1066,24 +1216,95 @@ fontSizeBtns.forEach(btn => {
     });
 });
 
-/* ============ File Attach & Clipboard Paste ============ */
+/* ============ File Attach, Tab Capture & Clipboard Paste ============ */
 if (attachBtn) attachBtn.addEventListener("click", () => { if (filePicker) filePicker.click(); });
 if (filePicker) filePicker.addEventListener("change", async e => {
     await handleFiles(Array.from(e.target.files));
     filePicker.value = "";
 });
 
+if (attachTabBtn) {
+    attachTabBtn.addEventListener("click", async () => {
+        toast("Capturing active webpage...", "info", 1500);
+        try {
+            const res = await browser.runtime.sendMessage({ action: "get-active-tab-content" });
+            if (!res || res.error) throw new Error(res?.error || "Could not access tab");
+            if (!res.text || res.text.length < 20) throw new Error("No readable text found on page");
+            
+            const tabId = "tab_" + Date.now();
+            const charCountK = Math.round(res.text.length / 1000);
+            attachedFiles.push({
+                id: tabId,
+                name: res.title,
+                icon: "📄",
+                label: `📄 ${res.title.slice(0, 20)}… (${charCountK}k)`,
+                title: `${res.title} (${res.url}) - ${res.text.length} chars`,
+                text: `[Content from Web Page "${res.title}" (${res.url})]:\n${res.text}`
+            });
+            renderPreviewZone();
+            toast(`Attached: "${res.title.slice(0, 25)}…"`, "success");
+        } catch (e) {
+            toast("Tab capture failed: " + e.message, "error");
+        }
+    });
+}
 
+function renderPreviewZone() {
+    if (!previewZone) return;
+    previewZone.innerHTML = "";
 
+    // Render image thumbnails with remove badges
+    currentImages.forEach((img, idx) => {
+        const wrap = document.createElement("div");
+        wrap.className = "thumb-preview-wrapper";
+        const thumb = document.createElement("img");
+        thumb.src = `data:${img.type || 'image/jpeg'};base64,${img.b64}`;
+        thumb.className = "thumb-preview";
+        thumb.addEventListener("click", () => openImageModal(thumb.src));
+        wrap.appendChild(thumb);
 
+        const remBtn = document.createElement("button");
+        remBtn.className = "thumb-remove-btn";
+        remBtn.innerHTML = ICONS.close;
+        remBtn.title = "Remove image";
+        remBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            currentImages.splice(idx, 1);
+            renderPreviewZone();
+        });
+        wrap.appendChild(remBtn);
+        previewZone.appendChild(wrap);
+    });
 
+    // Render file & page pills with remove buttons
+    attachedFiles.forEach((f, idx) => {
+        const pill = document.createElement("span");
+        pill.className = "file-pill" + (f.processing ? " processing" : "");
+        if (f.title) pill.title = f.title;
 
+        const lbl = document.createElement("span");
+        lbl.style.display = "inline-flex";
+        lbl.style.alignItems = "center";
+        lbl.style.gap = "4px";
+        lbl.innerHTML = `${ICONS.file}<span>${escapeHtml(f.name || f.label)}</span>`;
+        pill.appendChild(lbl);
 
-
-
+        const remBtn = document.createElement("button");
+        remBtn.className = "file-pill-remove";
+        remBtn.innerHTML = ICONS.close;
+        remBtn.title = "Remove attachment";
+        remBtn.addEventListener("click", (e) => {
+            e.stopPropagation();
+            attachedFiles.splice(idx, 1);
+            renderPreviewZone();
+        });
+        pill.appendChild(remBtn);
+        previewZone.appendChild(pill);
+    });
+}
 
 async function handleFiles(files) {
-    const MAX_CHARS = 60000; // ~15k tokens - safe for most models
+    const MAX_CHARS = 60000;
 
     for (const file of files) {
         const name = file.name.toLowerCase();
@@ -1092,57 +1313,54 @@ async function handleFiles(files) {
         /* ---------- Images ---------- */
         if (type.startsWith("image/")) {
             const b64 = await fileToBase64(file);
-            currentImages.push(b64);
-            const thumb = document.createElement("img");
-            thumb.src = `data:${file.type};base64,${b64}`;
-            thumb.className = "thumb-preview";
-            thumb.addEventListener("click", () => openImageModal(thumb.src));
-            if (previewZone) previewZone.appendChild(thumb);
+            currentImages.push({
+                id: "img_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+                b64,
+                type: file.type
+            });
+            renderPreviewZone();
             continue;
         }
 
-        /* ---------- PDFs (with smart truncation) ---------- */
+        /* ---------- PDFs ---------- */
         if (type === "application/pdf" || name.endsWith(".pdf")) {
-            const pill = document.createElement("span");
-            pill.className = "file-pill processing";
-            pill.textContent = `📕 ${file.name} (extracting...)`;
-            pill.dataset.fileName = file.name;
-            if (previewZone) previewZone.appendChild(pill);
+            const fileId = "pdf_" + Date.now();
+            const fileItem = {
+                id: fileId,
+                name: file.name,
+                icon: "📕",
+                label: `📕 ${file.name} (extracting...)`,
+                processing: true,
+                text: ""
+            };
+            attachedFiles.push(fileItem);
+            renderPreviewZone();
 
             try {
                 let text = await extractTextFromPDF(file);
-
-                if (!text || text.length < 20) {
-                    throw new Error("No extractable text found");
-                }
-
+                if (!text || text.length < 20) throw new Error("No extractable text found");
                 const originalLength = text.length;
                 let truncated = false;
 
-                // Smart truncation: keep beginning + end (preserves intro & conclusion)
                 if (text.length > MAX_CHARS) {
                     const halfMax = Math.floor(MAX_CHARS / 2);
-                    const beginning = text.slice(0, halfMax);
-                    const ending = text.slice(-halfMax);
-                    text = `${beginning}\n\n[... ${Math.round((originalLength - MAX_CHARS) / 1000)}k characters truncated for context limits ...]\n\n${ending}`;
+                    text = `${text.slice(0, halfMax)}\n\n[... ${Math.round((originalLength - MAX_CHARS) / 1000)}k chars truncated ...]\n\n${text.slice(-halfMax)}`;
                     truncated = true;
                     toast(`📕 PDF truncated: ${Math.round(originalLength/1000)}k → ${Math.round(MAX_CHARS/1000)}k chars`, "warning", 4000);
                 } else {
                     toast(`📕 PDF extracted: ${Math.round(text.length/1000)}k chars`, "success");
                 }
 
-                contextFileText += `\n\n[Content from PDF "${file.name}"${truncated ? " (truncated)" : ""}]:\n${text}`;
-
-                pill.textContent = `📕 ${file.name} ✅ ${Math.round(text.length/1000)}k${truncated ? ' ⚠️' : ''}`;
-                pill.classList.remove("processing");
-                pill.title = truncated
-                ? `Original: ${Math.round(originalLength/1000)}k chars — truncated to fit context window`
-                : `Full PDF extracted`;
-
+                fileItem.text = `[Content from PDF "${file.name}"${truncated ? " (truncated)" : ""}]:\n${text}`;
+                fileItem.label = `📕 ${file.name} (${Math.round(text.length/1000)}k)${truncated ? ' ⚠️' : ''}`;
+                fileItem.processing = false;
+                fileItem.title = truncated ? `Original: ${Math.round(originalLength/1000)}k chars (truncated)` : `Full PDF extracted (${Math.round(text.length/1000)}k chars)`;
+                renderPreviewZone();
             } catch (e) {
                 console.error("[PDF]", e);
-                pill.textContent = `📕 ${file.name} ❌`;
-                pill.classList.remove("processing");
+                fileItem.label = `📕 ${file.name} ❌`;
+                fileItem.processing = false;
+                renderPreviewZone();
                 toast(`PDF failed: ${e.message}`, "error");
             }
             continue;
@@ -1150,35 +1368,44 @@ async function handleFiles(files) {
 
         /* ---------- Audio ---------- */
         if (type.startsWith("audio/")) {
-            const pill = document.createElement("span");
-            pill.className = "file-pill";
-            pill.textContent = `🎵 ${file.name}`;
-            if (previewZone) previewZone.appendChild(pill);
-            contextFileText += `\n\n[Audio: ${file.name}]`;
+            attachedFiles.push({
+                id: "aud_" + Date.now(),
+                name: file.name,
+                icon: "🎵",
+                label: `🎵 ${file.name}`,
+                text: `[Audio: ${file.name}]`
+            });
+            renderPreviewZone();
             continue;
         }
 
         /* ---------- Video ---------- */
         if (type.startsWith("video/")) {
-            const pill = document.createElement("span");
-            pill.className = "file-pill";
-            pill.textContent = `🎬 ${file.name}`;
-            if (previewZone) previewZone.appendChild(pill);
-            contextFileText += `\n\n[Video: ${file.name}]`;
+            attachedFiles.push({
+                id: "vid_" + Date.now(),
+                name: file.name,
+                icon: "🎬",
+                label: `🎬 ${file.name}`,
+                text: `[Video: ${file.name}]`
+            });
+            renderPreviewZone();
             continue;
         }
 
-        /* ---------- Plain text / other ---------- */
+        /* ---------- Plain text / Markdown / Source code ---------- */
         try {
             let txt = await file.text();
             if (txt.length > MAX_CHARS) {
                 txt = txt.slice(0, MAX_CHARS) + `\n\n[... truncated ${Math.round((txt.length - MAX_CHARS)/1000)}k chars ...]`;
             }
-            contextFileText += `\n\n[Context from ${file.name}]:\n${txt}`;
-            const pill = document.createElement("span");
-            pill.className = "file-pill";
-            pill.textContent = `📄 ${file.name}`;
-            if (previewZone) previewZone.appendChild(pill);
+            attachedFiles.push({
+                id: "txt_" + Date.now(),
+                name: file.name,
+                icon: "📄",
+                label: `📄 ${file.name} (${Math.round(txt.length/1000)}k)`,
+                text: `[Context from ${file.name}]:\n${txt}`
+            });
+            renderPreviewZone();
         } catch (e) {
             toast(`Could not read ${file.name}`, "error");
         }
@@ -1284,12 +1511,12 @@ function initVoiceRecognition() {
     };
     recognition.onend = () => {
         isRecording = false;
-        if (voiceBtn) { voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤"; }
+        if (voiceBtn) { voiceBtn.classList.remove("recording"); voiceBtn.innerHTML = ICONS.mic; }
     };
     recognition.onerror = (e) => {
         toast("Voice error: " + e.error, "error");
         isRecording = false;
-        if (voiceBtn) { voiceBtn.classList.remove("recording"); voiceBtn.textContent = "🎤"; }
+        if (voiceBtn) { voiceBtn.classList.remove("recording"); voiceBtn.innerHTML = ICONS.mic; }
     };
 }
 
@@ -1300,7 +1527,7 @@ if (voiceBtn) voiceBtn.addEventListener("click", () => {
         recognition.start();
         isRecording = true;
         voiceBtn.classList.add("recording");
-        voiceBtn.textContent = "⏹";
+        voiceBtn.innerHTML = ICONS.stopSquare;
         toast("Listening...", "info", 1500);
     }
 });
@@ -1365,15 +1592,16 @@ function handleIncomingPrompt(msg) {
     // Images (vision)
     if (msg.images && msg.images.length > 0) {
         msg.images.forEach(imgBase64 => {
-            const thumb = document.createElement("img");
-            thumb.src = `data:image/jpeg;base64,${imgBase64}`;
-            thumb.className = "thumb-preview";
-            thumb.style.maxWidth = "200px";
-            thumb.style.marginTop = "6px";
-            thumb.addEventListener("click", () => openImageModal(thumb.src));
-            if (previewZone) previewZone.appendChild(thumb);
-            currentImages.push(imgBase64);
+            if (!imgBase64 || typeof imgBase64 !== "string") return;
+            const cleanB64 = imgBase64.replace(/^data:image\/[^;]+;base64,/, "").trim();
+            if (!cleanB64) return;
+            currentImages.push({
+                id: "img_" + Date.now() + "_" + Math.random().toString(36).slice(2, 6),
+                b64: cleanB64,
+                type: "image/jpeg"
+            });
         });
+        renderPreviewZone();
     }
 
     // Non-image attachment pill
@@ -1417,13 +1645,22 @@ function handleIncomingPrompt(msg) {
 /* ============ Send ============ */
 if (sendBtn) sendBtn.addEventListener("click", () => {
     let text = userInput ? userInput.value.trim() : "";
-    if (!text && currentImages.length === 0 && !contextFileText) return;
-    if (contextFileText) text = `${text}\n${contextFileText}`.trim();
+    const attachedTexts = attachedFiles.map(f => f.text).filter(Boolean);
+    if (contextFileText) attachedTexts.unshift(contextFileText);
+    const combinedFileText = attachedTexts.join("\n\n");
+    if (!text && currentImages.length === 0 && !combinedFileText) return;
+    if (combinedFileText) text = text ? `${text}\n\n${combinedFileText}` : combinedFileText;
+
     if (userInput) userInput.value = "";
-    if (previewZone) previewZone.innerHTML = "";
-    const imgs = [...currentImages];
+    const imgs = currentImages
+        .map(img => (typeof img === "string" ? img : img?.b64))
+        .filter(Boolean)
+        .map(b64 => b64.replace(/^data:image\/[^;]+;base64,/, "").trim())
+        .filter(b64 => b64.length > 0);
     currentImages = [];
+    attachedFiles = [];
     contextFileText = "";
+    renderPreviewZone();
     autoResizeTextarea();
     askOllama(text, imgs);
 });
@@ -1470,14 +1707,29 @@ function openDB() {
 
 async function getEmbedding(text, model) {
     const baseUrl = cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "";
-    const res = await fetch(`${baseUrl}/api/embeddings`, {
+    try {
+        const res = await fetch(`${baseUrl}/api/embeddings`, {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({ model, prompt: text })
+        });
+        if (res.ok) {
+            const data = await res.json();
+            if (data.embedding) return data.embedding;
+        }
+    } catch (e) {
+        console.warn("[RAG] /api/embeddings failed, attempting /api/embed fallback...", e);
+    }
+
+    // Fallback to Ollama v0.1.34+ /api/embed endpoint
+    const embedRes = await fetch(`${baseUrl}/api/embed`, {
         method: 'POST',
         headers: { 'Content-Type': 'application/json' },
-        body: JSON.stringify({ model, prompt: text })
+        body: JSON.stringify({ model, input: text })
     });
-    if (!res.ok) throw new Error('Embedding API failed');
-    const data = await res.json();
-    return data.embedding;
+    if (!embedRes.ok) throw new Error(`Embedding API failed with HTTP ${embedRes.status}`);
+    const embedData = await embedRes.json();
+    return embedData.embeddings ? embedData.embeddings[0] : embedData.embedding;
 }
 
 function chunkTextBySentences(text, chunkSize = 1000, overlap = 200) {
@@ -1530,13 +1782,41 @@ async function queryRAG(prompt) {
         request.onsuccess = () => {
             const allChunks = request.result;
             if (allChunks.length === 0) { resolve({ context: "", sources: [] }); return; }
-            const scored = allChunks.map(chunk => ({ ...chunk, score: cosineSimilarity(queryEmbedding, chunk.embedding) }));
-            scored.sort((a, b) => b.score - a.score);
-            const topChunks = scored.slice(0, topK);
-            const context = topChunks.map(c => `[Source: ${c.source}]\n${c.text}`).join('\n\n---\n\n');
-            const sources = topChunks.map(c => c.source);
-            resolve({ context, sources });
+
+            const fallbackCosine = () => {
+                const scored = allChunks.map(chunk => ({ ...chunk, score: cosineSimilarity(queryEmbedding, chunk.embedding) }));
+                scored.sort((a, b) => b.score - a.score);
+                const topChunks = scored.slice(0, topK);
+                const context = topChunks.map(c => `[Source: ${c.source}]\n${c.text}`).join('\n\n---\n\n');
+                const sources = topChunks.map(c => c.source);
+                resolve({ context, sources });
+            };
+
+            if (ragWorker) {
+                const handler = (e) => {
+                    if (e.data.action === 'search-results') {
+                        ragWorker.removeEventListener('message', handler);
+                        const topChunks = e.data.data?.results || [];
+                        const context = topChunks.map(c => `[Source: ${c.source}]\n${c.text}`).join('\n\n---\n\n');
+                        const sources = topChunks.map(c => c.source);
+                        resolve({ context, sources });
+                    } else if (e.data.action === 'search-error') {
+                        ragWorker.removeEventListener('message', handler);
+                        console.warn('[RAG] Worker hybrid search failed, falling back to cosine:', e.data.data?.error);
+                        fallbackCosine();
+                    }
+                };
+                ragWorker.addEventListener('message', handler);
+                ragWorker.postMessage({
+                    action: 'hybrid-search',
+                    data: { query: prompt, chunks: allChunks, queryEmbedding, topK }
+                });
+                return;
+            }
+
+            fallbackCosine();
         };
+        request.onerror = () => resolve({ context: "", sources: [] });
     });
 }
 
@@ -1573,7 +1853,7 @@ async function loadRagDocuments() {
                     <div class="rag-doc-name">${escapeHtml(doc.name)}</div>
                     <div class="rag-doc-meta">${doc.chunks} chunks · ${new Date(doc.timestamp).toLocaleDateString()}</div>
                 </div>
-                <button class="rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">🗑️</button>`;
+                <button class="rag-doc-delete" data-name="${escapeHtml(doc.name)}" title="Delete">${ICONS.del}</button>`;
             ragDocList.appendChild(item);
         });
         ragDocList.querySelectorAll('.rag-doc-delete').forEach(btn => {
@@ -1614,16 +1894,78 @@ if (ragClearAllBtn) ragClearAllBtn.addEventListener("click", async () => {
     chunksTx.oncomplete = () => { loadRagDocuments(); toast("All documents cleared", "success"); };
 });
 
+/* ============ Staged RAG Selection Draft ============ */
+async function checkRagDraft() {
+    if (!ragDraftArea) return;
+    try {
+        const res = await browser.storage.local.get("ragIndexDraft");
+        if (res.ragIndexDraft && res.ragIndexDraft.text) {
+            ragDraftArea.style.display = "block";
+            const previewText = res.ragIndexDraft.text.slice(0, 200).replace(/\n+/g, ' ');
+            const src = res.ragIndexDraft.source || "Web Selection";
+            if (ragDraftInfo) {
+                ragDraftInfo.textContent = `"${previewText}..." — Source: ${src}`;
+            }
+        } else {
+            ragDraftArea.style.display = "none";
+        }
+    } catch (e) {
+        console.warn("[RAG] checkRagDraft error:", e);
+    }
+}
+
+const ragDiscardDraftBtn = getEl("rag-discard-draft");
+if (ragDiscardDraftBtn) {
+    ragDiscardDraftBtn.addEventListener("click", async () => {
+        await browser.storage.local.remove("ragIndexDraft");
+        if (ragDraftArea) ragDraftArea.style.display = "none";
+        toast("Staged text discarded", "info", 1500);
+    });
+}
+
+if (ragSaveDraftBtn) {
+    ragSaveDraftBtn.addEventListener("click", async () => {
+        try {
+            const res = await browser.storage.local.get("ragIndexDraft");
+            if (!res.ragIndexDraft || !res.ragIndexDraft.text) {
+                if (ragDraftArea) ragDraftArea.style.display = "none";
+                return;
+            }
+            ragSaveDraftBtn.disabled = true;
+            ragSaveDraftBtn.textContent = "⏳ Indexing...";
+            await indexContent(res.ragIndexDraft.source || "Web Selection", res.ragIndexDraft.text);
+            await browser.storage.local.remove("ragIndexDraft");
+            if (ragDraftArea) ragDraftArea.style.display = "none";
+            loadRagDocuments();
+            toast("Selection indexed into Knowledge Base!", "success");
+        } catch (err) {
+            toast(`Failed to index: ${err.message}`, "error");
+        } finally {
+            if (ragSaveDraftBtn) {
+                ragSaveDraftBtn.disabled = false;
+                ragSaveDraftBtn.textContent = "📥 Index Selection Now";
+            }
+        }
+    });
+}
+
 /* ============ API Call ============ */
 
 
 
 
 async function askOllama(promptText, images = []) {
-    appendMessage(promptText, "user", images);
+    const cleanImages = (images || [])
+        .map(img => (typeof img === "string" ? img : img?.b64))
+        .filter(Boolean)
+        .map(b64 => b64.replace(/^data:image\/[^;]+;base64,/, "").trim())
+        .filter(b64 => b64.length > 0);
+
+    appendMessage(promptText, "user", cleanImages);
     const wrapper = appendMessage("", "assistant");
     const msgDiv = wrapper.querySelector(".message");
     msgDiv.innerHTML = `<div class="typing-indicator"><span></span><span></span><span></span></div>`;
+    autoScrollChat(true);
 
     if (sendBtn) sendBtn.style.display = "none";
     if (stopBtn) stopBtn.style.display = "inline-flex";
@@ -1663,10 +2005,14 @@ async function askOllama(promptText, images = []) {
     const history = conv.messages.slice(0, -1).slice(-10);
     history.forEach(m => {
         if (m.sender === "user" || m.sender === "assistant") {
-            messages.push({ role: m.sender, content: m.text });
+            messages.push({ role: m.sender, content: m.text, images: m.images || undefined });
         }
     });
-    messages.push({ role: "user", content: finalPrompt, images: images.length ? images : undefined });
+    messages.push({
+        role: "user",
+        content: finalPrompt,
+        images: cleanImages.length ? cleanImages : undefined
+    });
 
     // ═══════════════ DYNAMIC CONTEXT WINDOW ═══════════════
     // Calculate total prompt size and auto-expand context if needed
@@ -1701,9 +2047,33 @@ async function askOllama(promptText, images = []) {
     if (isOpenAIMode) {
         fetchUrl = `${baseUrl}/v1/chat/completions`;
         if (apiKey) fetchHeaders["Authorization"] = `Bearer ${apiKey}`;
+
+        // Format messages for OpenAI Vision API specification
+        const openAIMessages = messages.map((m, idx) => {
+            const isLatestUser = (idx === messages.length - 1);
+            const msgImgs = isLatestUser ? cleanImages : (m.images || []);
+            if (msgImgs && msgImgs.length > 0) {
+                const contentParts = [{ type: "text", text: m.content || "" }];
+                msgImgs.forEach(b64 => {
+                    const clean = (typeof b64 === "string" ? b64 : b64?.b64 || "")
+                        .replace(/^data:image\/[^;]+;base64,/, "").trim();
+                    if (clean) {
+                        contentParts.push({
+                            type: "image_url",
+                            image_url: {
+                                url: `data:image/jpeg;base64,${clean}`
+                            }
+                        });
+                    }
+                });
+                return { role: m.role, content: contentParts };
+            }
+            return { role: m.role, content: m.content || "" };
+        });
+
         fetchBody = {
             model: cfgModel ? cfgModel.value : "gpt-3.5-turbo",
-            messages,
+            messages: openAIMessages,
             temperature: cfgTemp ? parseFloat(cfgTemp.value) : 0.7,
             stream: cfgStream ? cfgStream.checked : true
         };
@@ -1734,10 +2104,29 @@ async function askOllama(promptText, images = []) {
 
             // Provide helpful error messages
             if (res.status === 400) {
+                let detailedMsg = "";
+                try {
+                    const parsed = JSON.parse(errorText);
+                    if (typeof parsed.error === "string") {
+                        try {
+                            const nested = JSON.parse(parsed.error);
+                            detailedMsg = nested?.message || nested?.error?.message || parsed.error;
+                        } catch {
+                            detailedMsg = parsed.error;
+                        }
+                    } else if (parsed?.error?.message) {
+                        detailedMsg = parsed.error.message;
+                    } else if (parsed?.message) {
+                        detailedMsg = parsed.message;
+                    }
+                } catch {}
+
                 if (errorText.includes("context") || errorText.includes("token")) {
                     errorMsg = `Context window exceeded. Try: (1) Using a model with larger context, (2) Reducing PDF size, or (3) Increasing context window in Settings.`;
+                } else if (errorText.toLowerCase().includes("failed to load image") || (detailedMsg && detailedMsg.toLowerCase().includes("image"))) {
+                    errorMsg = `Vision error: ${detailedMsg || "Failed to load image"}. Please ensure your selected model supports vision (e.g. llava, llama3.2-vision, qwen2.5-vl, gemma3).`;
                 } else {
-                    errorMsg = `Bad request: ${errorText.slice(0, 200)}`;
+                    errorMsg = `Bad request: ${detailedMsg || errorText.slice(0, 200)}`;
                 }
             } else if (res.status === 413) {
                 errorMsg = "Request too large. The PDF or prompt exceeds server limits.";
@@ -1871,10 +2260,18 @@ function updateStreamingMessage(msgDiv, content, thinking, final = false) {
     html += `<div class="message-content">${content ? parseMarkdownToHtml(content) : '<div class="typing-indicator"><span></span><span></span><span></span></div>'}</div>`;
     msgDiv.innerHTML = html;
     enhanceCodeBlocks(msgDiv);
-    autoScrollChat(true);
+    autoScrollChat(final);
 }
 
 /* ============ Model Fetching ============ */
+function formatBytes(bytes) {
+    if (!bytes || bytes === 0) return "0 B";
+    const k = 1024;
+    const sizes = ["B", "KB", "MB", "GB", "TB"];
+    const i = Math.floor(Math.log(bytes) / Math.log(k));
+    return parseFloat((bytes / Math.pow(k, i)).toFixed(1)) + " " + sizes[i];
+}
+
 async function fetchOllamaModels() {
     try {
         let baseUrl = cfgUrl ? cfgUrl.value.trim() : "";
@@ -1887,7 +2284,9 @@ async function fetchOllamaModels() {
         const data = await res.json();
         
         if (cfgModel) cfgModel.innerHTML = "";
+        if (quickModelSelect) quickModelSelect.innerHTML = "";
         if (cfgRagModel) cfgRagModel.innerHTML = "";
+        if (installedModelsList) installedModelsList.innerHTML = "";
         
         const defaultEmbed = "nomic-embed-text";
         let hasDefaultEmbed = false;
@@ -1895,9 +2294,61 @@ async function fetchOllamaModels() {
         if (data.models && data.models.length > 0) {
             data.models.forEach(m => {
                 if (cfgModel) { const o = document.createElement("option"); o.value = m.name; o.textContent = m.name; cfgModel.appendChild(o); }
+                if (quickModelSelect) { const qo = document.createElement("option"); qo.value = m.name; qo.textContent = m.name; quickModelSelect.appendChild(qo); }
                 if (cfgRagModel) { const ragOpt = document.createElement("option"); ragOpt.value = m.name; ragOpt.textContent = m.name; cfgRagModel.appendChild(ragOpt); }
                 if (m.name === defaultEmbed) hasDefaultEmbed = true;
+
+                // Render into installedModelsList
+                if (installedModelsList) {
+                    const card = document.createElement("div");
+                    card.className = "installed-model-card";
+                    const sizeStr = formatBytes(m.size);
+                    const paramStr = m.details?.parameter_size ? ` · ${m.details.parameter_size}` : "";
+                    const quantStr = m.details?.quantization_level ? ` · ${m.details.quantization_level}` : "";
+                    card.innerHTML = `
+                        <div class="installed-model-info">
+                            <div class="installed-model-name">${escapeHtml(m.name)}</div>
+                            <div class="installed-model-meta">${sizeStr}${paramStr}${quantStr}</div>
+                        </div>
+                        <div class="installed-model-actions">
+                            <button class="installed-model-delete-btn" data-model="${escapeHtml(m.name)}" title="Delete model">${ICONS.del}</button>
+                        </div>
+                    `;
+                    installedModelsList.appendChild(card);
+                }
             });
+
+            // Wire up model delete buttons
+            if (installedModelsList) {
+                installedModelsList.querySelectorAll(".installed-model-delete-btn").forEach(delBtn => {
+                    delBtn.addEventListener("click", async (e) => {
+                        e.stopPropagation();
+                        const modelName = delBtn.dataset.model;
+                        if (!confirm(`Are you sure you want to delete model "${modelName}" from Ollama storage?`)) return;
+                        delBtn.disabled = true;
+                        delBtn.textContent = "⏳";
+                        try {
+                            const resp = await browser.runtime.sendMessage({
+                                action: "delete-model",
+                                baseUrl: cfgUrl ? cfgUrl.value.trim().replace(/\/$/, "") : "",
+                                modelName
+                            });
+                            if (resp && resp.success) {
+                                toast(`Deleted model ${modelName}`, "success");
+                                fetchOllamaModels();
+                            } else {
+                                toast(`Failed to delete: ${resp?.error || 'Unknown error'}`, "error");
+                                delBtn.disabled = false;
+                                delBtn.innerHTML = ICONS.del;
+                            }
+                        } catch (err) {
+                            toast(`Failed: ${err.message}`, "error");
+                            delBtn.disabled = false;
+                            delBtn.innerHTML = ICONS.del;
+                        }
+                    });
+                });
+            }
             
             if (!hasDefaultEmbed && cfgRagModel) {
                 const ragOpt = document.createElement("option");
@@ -1906,16 +2357,25 @@ async function fetchOllamaModels() {
             }
             
             browser.storage.local.get(["selectedModel", "ragModel"]).then(res => {
-                if (res.selectedModel && cfgModel) cfgModel.value = res.selectedModel;
+                if (res.selectedModel) {
+                    if (cfgModel) cfgModel.value = res.selectedModel;
+                    if (quickModelSelect) quickModelSelect.value = res.selectedModel;
+                }
                 if (res.ragModel && cfgRagModel) cfgRagModel.value = res.ragModel;
                 else if (cfgRagModel) cfgRagModel.value = defaultEmbed;
                 if (currentModelTag && cfgModel) currentModelTag.innerText = cfgModel.value;
             });
             toast(`Loaded ${data.models.length} models`, "success");
         } else {
+            if (installedModelsList) {
+                installedModelsList.innerHTML = `<div style="text-align:center; padding:12px; color:var(--fg-muted); font-size:12px;">No models installed</div>`;
+            }
             toast("No models found. Click 'Pull' to download one.", "warning");
         }
     } catch (e) {
+        if (installedModelsList) {
+            installedModelsList.innerHTML = `<div style="text-align:center; padding:12px; color:var(--error); font-size:12px;">Failed to connect to Ollama</div>`;
+        }
         toast(`Could not fetch models: ${e.message}`, "error");
     }
 }
@@ -1944,6 +2404,10 @@ function updateTokenCounter() {
     if (!conv || !conv.messages) {
         tokenCounter.textContent = "~0 tokens";
         if (messageCount) messageCount.textContent = "0 messages";
+        if (contextMeterFill) {
+            contextMeterFill.style.width = "0%";
+            contextMeterFill.classList.remove("warning", "danger");
+        }
         return;
     }
     let totalChars = 0;
@@ -1958,6 +2422,11 @@ function updateTokenCounter() {
     
     tokenCounter.innerHTML = `<span style="color:${color}">~${estimatedTokens}</span> / ${ctxLimit} tokens`;
     if (messageCount) messageCount.textContent = `${conv.messages.length} messages`;
+    if (contextMeterFill) {
+        contextMeterFill.style.width = `${percentage}%`;
+        contextMeterFill.classList.toggle("warning", percentage > 70 && percentage <= 90);
+        contextMeterFill.classList.toggle("danger", percentage > 90);
+    }
 }
 
 /* ============ Keyboard Shortcuts ============ */
@@ -1970,6 +2439,10 @@ document.addEventListener("keydown", (e) => {
         else if (e.key === "/" || e.key === "?") { e.preventDefault(); if (shortcutsModal) shortcutsModal.classList.toggle("active"); }
         else if (e.key === "r" || e.key === "R") { e.preventDefault(); if (ragToggleBtn) ragToggleBtn.click(); }
     }
+    if (e.altKey && (e.key === "p" || e.key === "P")) {
+        e.preventDefault();
+        if (attachTabBtn) attachTabBtn.click();
+    }
     if (e.key === "Escape") {
         if (imageModal) imageModal.classList.remove("active");
         if (shortcutsModal) shortcutsModal.classList.remove("active");
@@ -1979,6 +2452,7 @@ document.addEventListener("keydown", (e) => {
     }
 });
 
+if (helpBtn) helpBtn.addEventListener("click", () => { if (shortcutsModal) shortcutsModal.classList.add("active"); });
 if (closeShortcuts) closeShortcuts.addEventListener("click", () => { if (shortcutsModal) shortcutsModal.classList.remove("active"); });
 if (shortcutsModal) shortcutsModal.addEventListener("click", (e) => { if (e.target === shortcutsModal) shortcutsModal.classList.remove("active"); });
 if (historyModal) historyModal.addEventListener("click", (e) => { if (e.target === historyModal) historyModal.classList.remove("active"); });
@@ -1990,26 +2464,34 @@ browser.storage.onChanged.addListener((changes, area) => {
     }
 });
 
-const scrollBottomBtn = document.createElement('button');
+scrollBottomBtn = document.createElement('button');
 scrollBottomBtn.id = 'scroll-bottom-btn';
 scrollBottomBtn.className = 'icon-btn';
-scrollBottomBtn.innerHTML = '⬇️';
+scrollBottomBtn.innerHTML = `<svg class="icon" viewBox="0 0 24 24"><path d="M12 5v14M19 12l-7 7-7-7"/></svg>`;
 scrollBottomBtn.title = 'Scroll to bottom';
-const chatArena = document.querySelector('.chat-arena');
-if (chatArena) {
-    chatArena.appendChild(scrollBottomBtn);
-    chatContainer.addEventListener('scroll', () => {
-        const isNearBottom = chatContainer.scrollHeight - chatContainer.scrollTop - chatContainer.clientHeight < 150;
-        scrollBottomBtn.style.display = isNearBottom ? 'none' : 'inline-flex';
+
+const arenaEl = getScrollElement();
+if (arenaEl) {
+    arenaEl.appendChild(scrollBottomBtn);
+    arenaEl.addEventListener('scroll', () => {
+        const threshold = 90;
+        const distFromBottom = arenaEl.scrollHeight - arenaEl.scrollTop - arenaEl.clientHeight;
+        const nearBottom = distFromBottom <= threshold;
+        isUserScrolledUp = !nearBottom;
+        scrollBottomBtn.style.display = nearBottom ? 'none' : 'inline-flex';
+    }, { passive: true });
+    scrollBottomBtn.addEventListener('click', () => {
+        isUserScrolledUp = false;
+        arenaEl.scrollTo({ top: arenaEl.scrollHeight, behavior: 'smooth' });
+        scrollBottomBtn.style.display = 'none';
     });
-    scrollBottomBtn.addEventListener('click', () => { chatContainer.scrollTo({ top: chatContainer.scrollHeight, behavior: 'smooth' }); });
 }
 
 let dragOverlay = document.querySelector('.drag-overlay');
 if (!dragOverlay && chatArena) {
     dragOverlay = document.createElement('div');
     dragOverlay.className = 'drag-overlay';
-    dragOverlay.innerHTML = `<div class="drag-overlay-content"><div class="drag-icon">📎</div><div class="drag-text">Drop files to attach</div></div>`;
+    dragOverlay.innerHTML = `<div class="drag-overlay-content"><div class="drag-icon"><svg class="icon" style="width:36px;height:36px;" viewBox="0 0 24 24"><path d="m21.44 11.05-9.19 9.19a6 6 0 0 1-8.49-8.49l8.57-8.57A4 4 0 1 1 18 8.84l-8.59 8.57a2 2 0 0 1-2.83-2.83l8.49-8.48"/></svg></div><div class="drag-text">Drop files to attach</div></div>`;
     chatArena.appendChild(dragOverlay);
 }
 

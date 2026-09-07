@@ -34,12 +34,15 @@ document.addEventListener("DOMContentLoaded", async () => {
       }
     }
 
-    if (htmlContent && timestamp && (Date.now() - timestamp < 60000)) {
+    const isValid = htmlContent && (!timestamp || (Date.now() - timestamp < 180000));
+    if (isValid) {
       // Inject CSP meta tag for safety
-      const safeHtml = htmlContent.replace(
-        /<head([^>]*)>/i,
-        '<head$1><meta http-equiv="Content-Security-Policy" content="default-src \'self\' \'unsafe-inline\' data: blob:;">'
-      );
+      const safeHtml = htmlContent.includes('<head')
+        ? htmlContent.replace(
+            /<head([^>]*)>/i,
+            '<head$1><meta http-equiv="Content-Security-Policy" content="default-src \'self\' \'unsafe-inline\' data: blob:;">'
+          )
+        : `<head><meta http-equiv="Content-Security-Policy" content="default-src 'self' 'unsafe-inline' data: blob:;"></head>${htmlContent}`;
       document.getElementById('preview-frame').srcdoc = safeHtml;
     } else {
       document.body.innerHTML = '<p style="padding:20px; font-family:sans-serif; color:#333;">Preview data expired or not found. Please try clicking Preview again.</p>';
