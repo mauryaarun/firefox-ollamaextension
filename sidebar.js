@@ -97,6 +97,14 @@ const installedModelsList = getEl("installed-models-list");
 const newConvBtnHistory = getEl("new-conversation-btn-history");
 const cfgReviewPrompts  = getEl("cfg-review-prompts");
 const cfgFloatingMenu   = getEl("cfg-floating-menu");
+const cfgUserProfile    = getEl("cfg-user-profile");
+const cfgAutoTitle      = getEl("cfg-auto-title");
+const artifactsBtn      = getEl("artifacts-btn");
+const artifactsModal    = getEl("artifacts-modal");
+const closeArtifacts    = getEl("close-artifacts");
+const artifactsList     = getEl("artifacts-list");
+const artifactsCount    = getEl("artifacts-count");
+const refreshArtifactsBtn = getEl("refresh-artifacts-btn");
 
 /* ============ Icons (Modern SVG System) ============ */
 const ICONS = {
@@ -206,9 +214,9 @@ settingsTabs.forEach(tab => {
 
 /* ============ Init ============ */
 browser.storage.local.get([
-    "serverUrl", "selectedModel", "theme", "systemPrompt", "temperature", "contextLength",
+    "serverUrl", "selectedModel", "theme", "systemPrompt", "userProfile", "temperature", "contextLength",
     "stream", "conversations", "activeConvId", "openaiMode", "apiKey", "showThinking",
-    "autoTts", "fontSize", "ragModel", "ragTopk", "ragChunkSize", "presetPrompt", "ragEnabled",
+    "autoTts", "autoTitle", "fontSize", "ragModel", "ragTopk", "ragChunkSize", "presetPrompt", "ragEnabled",
     "reviewPrompts", "enableFloatingMenu"
 ]).then((res) => {
     console.log("[Init] Storage loaded");
@@ -219,6 +227,7 @@ browser.storage.local.get([
     else { applyTheme("auto"); setActiveThemeChip("auto"); }
     
     if (res.systemPrompt && cfgSystemPrompt) cfgSystemPrompt.value = res.systemPrompt;
+    if (res.userProfile && cfgUserProfile) cfgUserProfile.value = res.userProfile;
     if (res.temperature && cfgTemp) { 
         cfgTemp.value = res.temperature; 
         if (tempVal) tempVal.textContent = res.temperature; 
@@ -232,6 +241,7 @@ browser.storage.local.get([
     if (res.apiKey && cfgApiKey) cfgApiKey.value = res.apiKey;
     if (res.showThinking && cfgShowThinking) cfgShowThinking.checked = res.showThinking;
     if (res.autoTts && cfgAutoTts) cfgAutoTts.checked = res.autoTts;
+    if (typeof res.autoTitle === "boolean" && cfgAutoTitle) cfgAutoTitle.checked = res.autoTitle;
     if (res.ragModel && cfgRagModel) cfgRagModel.value = res.ragModel;
     if (res.ragTopk && cfgRagTopk) cfgRagTopk.value = res.ragTopk;
     if (res.ragChunkSize && cfgRagChunkSize) cfgRagChunkSize.value = res.ragChunkSize;
@@ -310,6 +320,7 @@ function initSlashPalette() {
     html += '</div>';
     slashPalette.innerHTML = html;
     
+    let selectedIndex = -1;
     userInput.addEventListener('input', () => {
         if (userInput.value.startsWith('/')) {
             slashPalette.classList.add('active');
@@ -318,8 +329,10 @@ function initSlashPalette() {
                 const name = el.querySelector('.slash-command-name').textContent.toLowerCase();
                 el.style.display = name.includes(filter) ? 'flex' : 'none';
             });
+            selectedIndex = -1;
         } else {
             slashPalette.classList.remove('active');
+            selectedIndex = -1;
         }
     });
     
@@ -333,7 +346,36 @@ function initSlashPalette() {
         }
     });
     
-    userInput.addEventListener('keydown', (e) => { if (e.key === 'Escape') slashPalette.classList.remove('active'); });
+    userInput.addEventListener('keydown', (e) => {
+        if (!slashPalette.classList.contains('active')) return;
+        const visibleCmds = Array.from(slashPalette.querySelectorAll('.slash-command')).filter(el => el.style.display !== 'none');
+        if (visibleCmds.length === 0) return;
+
+        if (e.key === 'ArrowDown') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex + 1) % visibleCmds.length;
+            visibleCmds.forEach((el, idx) => el.classList.toggle('selected', idx === selectedIndex));
+            visibleCmds[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'ArrowUp') {
+            e.preventDefault();
+            selectedIndex = (selectedIndex - 1 + visibleCmds.length) % visibleCmds.length;
+            visibleCmds.forEach((el, idx) => el.classList.toggle('selected', idx === selectedIndex));
+            visibleCmds[selectedIndex]?.scrollIntoView({ block: 'nearest' });
+        } else if (e.key === 'Enter' && selectedIndex >= 0 && selectedIndex < visibleCmds.length) {
+            e.preventDefault();
+            const cmd = visibleCmds[selectedIndex];
+            if (cmd) {
+                userInput.value = cmd.dataset.prompt;
+                slashPalette.classList.remove('active');
+                userInput.focus();
+                autoResizeTextarea();
+            }
+            selectedIndex = -1;
+        } else if (e.key === 'Escape') {
+            slashPalette.classList.remove('active');
+            selectedIndex = -1;
+        }
+    });
 }
 
 /* ============ Theme Management ============ */
@@ -546,6 +588,127 @@ function openCodePreview(code, lang) {
         };
     }
 }
+
+/* ============ Code & Artifacts Drawer ============ */
+function renderArtifactsList() {
+    if (!artifactsList) return;
+    artifactsList.innerHTML = "";
+    const conv = conversations[activeConvId];
+    if (!conv || !conv.messages || conv.messages.length === 0) {
+        artifactsList.innerHTML = `<div class="history-empty">No messages in active chat</div>`;
+        if (artifactsCount) artifactsCount.textContent = "0 items";
+        return;
+    }
+
+    const artifacts = [];
+    conv.messages.forEach(msg => {
+        if (msg.sender !== "assistant" || !msg.text) return;
+
+        const codeRegex = /```([a-zA-Z0-9_+-]*)\n([\s\S]*?)```/g;
+        let match;
+        while ((match = codeRegex.exec(msg.text)) !== null) {
+            const lang = (match[1] || "text").trim();
+            const code = match[2].trim();
+            if (code) {
+                artifacts.push({ type: "code", lang, content: code, msgId: msg.id, ts: msg.ts });
+            }
+        }
+
+        const tableRegex = /(\|[^\n]+\|\n\|[\s:-|]+\|\n(?:\|[^\n]+\|\n?)+)/g;
+        let tableMatch;
+        while ((tableMatch = tableRegex.exec(msg.text)) !== null) {
+            const tableMd = tableMatch[1].trim();
+            if (tableMd) {
+                artifacts.push({ type: "table", lang: "markdown", content: tableMd, msgId: msg.id, ts: msg.ts });
+            }
+        }
+    });
+
+    if (artifactsCount) artifactsCount.textContent = `${artifacts.length} item${artifacts.length === 1 ? '' : 's'}`;
+
+    if (artifacts.length === 0) {
+        artifactsList.innerHTML = `<div class="history-empty">No code blocks or tables in this chat</div>`;
+        return;
+    }
+
+    artifacts.forEach((art, idx) => {
+        const card = document.createElement("div");
+        card.className = "artifact-card";
+
+        const header = document.createElement("div");
+        header.className = "artifact-header";
+
+        const tag = document.createElement("span");
+        tag.className = "artifact-lang-tag";
+        tag.textContent = art.type === "table" ? "📊 Table" : `💻 ${art.lang.toUpperCase() || 'CODE'}`;
+        header.appendChild(tag);
+
+        const time = document.createElement("span");
+        time.style.fontSize = "11px";
+        time.style.color = "var(--fg-muted)";
+        time.textContent = new Date(art.ts).toLocaleTimeString([], { hour: '2-digit', minute: '2-digit' });
+        header.appendChild(time);
+        card.appendChild(header);
+
+        const codePre = document.createElement("pre");
+        codePre.className = "artifact-preview-code";
+        codePre.textContent = art.content.length > 250 ? art.content.slice(0, 250) + "…" : art.content;
+        card.appendChild(codePre);
+
+        const actions = document.createElement("div");
+        actions.className = "artifact-actions";
+
+        const copyBtn = document.createElement("button");
+        copyBtn.className = "action-btn";
+        copyBtn.style.padding = "3px 8px";
+        copyBtn.style.fontSize = "11px";
+        copyBtn.innerHTML = `${ICONS.copy}<span>Copy</span>`;
+        copyBtn.addEventListener("click", () => {
+            navigator.clipboard.writeText(art.content).then(() => {
+                toast("Artifact copied to clipboard!", "success", 1500);
+            });
+        });
+        actions.appendChild(copyBtn);
+
+        const dlBtn = document.createElement("button");
+        dlBtn.className = "action-btn";
+        dlBtn.style.padding = "3px 8px";
+        dlBtn.style.fontSize = "11px";
+        dlBtn.innerHTML = `${ICONS.download}<span>Download</span>`;
+        dlBtn.addEventListener("click", () => {
+            const ext = getExtensionForLang(art.lang);
+            const blob = new Blob([art.content], { type: "text/plain" });
+            downloadBlob(blob, `artifact_${idx + 1}.${ext}`);
+            toast("Downloaded artifact", "success", 1500);
+        });
+        actions.appendChild(dlBtn);
+
+        const prevBtn = document.createElement("button");
+        prevBtn.className = "action-btn primary";
+        prevBtn.style.padding = "3px 8px";
+        prevBtn.style.fontSize = "11px";
+        prevBtn.innerHTML = `${ICONS.eye}<span>Preview</span>`;
+        prevBtn.addEventListener("click", () => {
+            openCodePreview(art.content, art.lang);
+        });
+        actions.appendChild(prevBtn);
+
+        card.appendChild(actions);
+        artifactsList.appendChild(card);
+    });
+}
+
+if (artifactsBtn) artifactsBtn.addEventListener("click", () => {
+    renderArtifactsList();
+    if (artifactsModal) artifactsModal.classList.add("active");
+});
+if (closeArtifacts) closeArtifacts.addEventListener("click", () => {
+    if (artifactsModal) artifactsModal.classList.remove("active");
+});
+if (refreshArtifactsBtn) refreshArtifactsBtn.addEventListener("click", () => {
+    renderArtifactsList();
+    toast("Artifacts refreshed", "info", 1200);
+});
 
 /* ============ Auto-Scroll Management ============ */
 let isUserScrolledUp = false;
@@ -839,7 +1002,8 @@ function appendMessage(text, sender, images = [], save = true, existingId = null
             thinking: thinking || null,
             ragSources: ragSources || null
         });
-        if (sender === "user" && conv.messages.filter(m => m.sender === "user").length === 1) {
+        const allowAutoTitle = cfgAutoTitle ? cfgAutoTitle.checked : true;
+        if (allowAutoTitle && sender === "user" && conv.messages.filter(m => m.sender === "user").length === 1) {
             conv.title = text.slice(0, 40) + (text.length > 40 ? "…" : "");
             if (chatTitle) chatTitle.textContent = conv.title;
             renderHistoryList();
@@ -986,6 +1150,8 @@ if (cfgOpenaiMode) cfgOpenaiMode.addEventListener("change", () => {
 if (cfgApiKey) cfgApiKey.addEventListener("change", () => browser.storage.local.set({ apiKey: cfgApiKey.value }));
 if (cfgShowThinking) cfgShowThinking.addEventListener("change", () => browser.storage.local.set({ showThinking: cfgShowThinking.checked }));
 if (cfgAutoTts) cfgAutoTts.addEventListener("change", () => browser.storage.local.set({ autoTts: cfgAutoTts.checked }));
+if (cfgAutoTitle) cfgAutoTitle.addEventListener("change", () => browser.storage.local.set({ autoTitle: cfgAutoTitle.checked }));
+if (cfgUserProfile) cfgUserProfile.addEventListener("change", () => browser.storage.local.set({ userProfile: cfgUserProfile.value }));
 if (cfgReviewPrompts) cfgReviewPrompts.addEventListener("change", () => browser.storage.local.set({ reviewPrompts: cfgReviewPrompts.checked }));
 if (cfgFloatingMenu) cfgFloatingMenu.addEventListener("change", () => browser.storage.local.set({ enableFloatingMenu: cfgFloatingMenu.checked }));
 
@@ -1034,9 +1200,11 @@ if (btnConfirmPull) btnConfirmPull.addEventListener("click", async () => {
 });
 
 browser.runtime.onMessage.addListener((msg) => {
+    if (!msg || !msg.action) return;
+    
     if (msg.action === "pull-progress") {
-        if (msg.data.status && pullProgress) pullProgress.textContent = msg.data.status;
-        if (msg.data.total && msg.data.completed && pullProgress) {
+        if (msg.data?.status && pullProgress) pullProgress.textContent = msg.data.status;
+        if (msg.data?.total && msg.data?.completed && pullProgress) {
             const pct = Math.min(((msg.data.completed / msg.data.total) * 100), 100).toFixed(1);
             pullProgress.textContent = `${msg.data.status || 'Downloading'} (${pct}%)`;
             if (pullProgressBar) pullProgressBar.style.width = `${pct}%`;
@@ -1056,46 +1224,27 @@ browser.runtime.onMessage.addListener((msg) => {
         if (btnConfirmPull) btnConfirmPull.disabled = false;
     } else if (msg.action === "rag-stage-draft") {
         checkRagDraft();
-    }
-});
-
-
-
-
-
-
-browser.runtime.onMessage.addListener((msg) => {
-    if (msg?.action === "request-file-picker") {
-        // Trigger the hidden file input filtered by kind
+    } else if (msg.action === "request-file-picker") {
         if (filePicker) {
             const kind = msg.kind || "pdf";
-            const acceptMap = {
-                audio: "audio/*",
-                video: "video/*",
-                pdf:   "application/pdf,.pdf"
-            };
+            const acceptMap = { audio: "audio/*", video: "video/*", pdf: "application/pdf,.pdf" };
             filePicker.setAttribute("accept", acceptMap[kind] || "*/*");
             filePicker.click();
-            // Reset accept afterwards
             setTimeout(() => filePicker.removeAttribute("accept"), 500);
         }
-        return;
-    }
-    if (msg?.action === "toast") {
+    } else if (msg.action === "toast") {
         toast(msg.message, msg.type || "info");
-        return;
-    }
-    if (msg?.attachment) {
-        // Non-image attachment from context menu (audio/video/pdf data URL)
-        const { name, kind, dataUrl } = msg.attachment;
+    } else if (msg.attachment) {
+        const { name, kind } = msg.attachment;
         const pill = document.createElement("span");
         pill.className = "file-pill";
         const icon = kind === "audio" ? "🎵" : kind === "video" ? "🎬" : "📕";
         pill.textContent = `${icon} ${name} (from page)`;
         if (previewZone) previewZone.appendChild(pill);
         contextFileText += `\n\n[${kind.toUpperCase()} attachment: ${name}]`;
-        // Open sidebar if closed
         if (settingsModal) settingsModal.classList.remove("active");
+    } else if (msg.action === "process-prompt") {
+        handleIncomingPrompt(msg);
     }
 });
 
@@ -1570,7 +1719,6 @@ if (promptTemplates) promptTemplates.addEventListener("change", (e) => {
 });
 
 /* ============ Incoming Prompts ============ */
-browser.runtime.onMessage.addListener(handleIncomingPrompt);
 
 
 
@@ -1755,17 +1903,33 @@ async function indexContent(source, text) {
     const chunkSize = cfgRagChunkSize ? parseInt(cfgRagChunkSize.value) : 1000;
     const chunks = chunkTextBySentences(text, chunkSize, 200);
     const embeddings = [];
-    for (const chunk of chunks) {
-        const embedding = await getEmbedding(chunk, embeddingModel);
-        embeddings.push({ source, text: chunk, embedding, timestamp: Date.now() });
+    const CONCURRENCY = 4;
+    let completed = 0;
+
+    if (ragIndexStatus) ragIndexStatus.textContent = `Indexing 0 of ${chunks.length} chunks…`;
+
+    for (let i = 0; i < chunks.length; i += CONCURRENCY) {
+        const batch = chunks.slice(i, i + CONCURRENCY);
+        const batchResults = await Promise.all(batch.map(async (chunk) => {
+            const embedding = await getEmbedding(chunk, embeddingModel);
+            completed++;
+            if (ragIndexStatus) ragIndexStatus.textContent = `Indexing chunk ${completed} of ${chunks.length}…`;
+            return { source, text: chunk, embedding, timestamp: Date.now() };
+        }));
+        embeddings.push(...batchResults);
     }
+
     const tx = db.transaction(STORE_NAME, 'readwrite');
     const store = tx.objectStore(STORE_NAME);
     for (const item of embeddings) store.add(item);
     const docsTx = db.transaction(DOCS_STORE, 'readwrite');
     docsTx.objectStore(DOCS_STORE).put({ name: source, chunks: chunks.length, timestamp: Date.now() });
+    
     return new Promise((resolve, reject) => {
-        tx.oncomplete = () => resolve();
+        tx.oncomplete = () => {
+            if (ragIndexStatus) ragIndexStatus.textContent = `✅ Indexed ${chunks.length} chunk(s)`;
+            resolve();
+        };
         tx.onerror = (e) => reject(e.target.error);
     });
 }
@@ -1998,8 +2162,16 @@ async function askOllama(promptText, images = []) {
     const conv = conversations[activeConvId];
 
     const messages = [];
+    let fullSystemPrompt = "";
     if (cfgSystemPrompt && cfgSystemPrompt.value.trim()) {
-        messages.push({ role: "system", content: cfgSystemPrompt.value.trim() });
+        fullSystemPrompt += cfgSystemPrompt.value.trim();
+    }
+    if (cfgUserProfile && cfgUserProfile.value.trim()) {
+        if (fullSystemPrompt) fullSystemPrompt += "\n\n";
+        fullSystemPrompt += `[User Profile & Context]:\n${cfgUserProfile.value.trim()}`;
+    }
+    if (fullSystemPrompt) {
+        messages.push({ role: "system", content: fullSystemPrompt });
     }
 
     const history = conv.messages.slice(0, -1).slice(-10);
@@ -2439,14 +2611,15 @@ document.addEventListener("keydown", (e) => {
         else if (e.key === "/" || e.key === "?") { e.preventDefault(); if (shortcutsModal) shortcutsModal.classList.toggle("active"); }
         else if (e.key === "r" || e.key === "R") { e.preventDefault(); if (ragToggleBtn) ragToggleBtn.click(); }
     }
-    if (e.altKey && (e.key === "p" || e.key === "P")) {
-        e.preventDefault();
-        if (attachTabBtn) attachTabBtn.click();
+    if (e.altKey) {
+        if (e.key === "p" || e.key === "P") { e.preventDefault(); if (attachTabBtn) attachTabBtn.click(); }
+        else if ((e.key === "c" || e.key === "C") && e.shiftKey) { e.preventDefault(); if (artifactsBtn) artifactsBtn.click(); }
     }
     if (e.key === "Escape") {
         if (imageModal) imageModal.classList.remove("active");
         if (shortcutsModal) shortcutsModal.classList.remove("active");
         if (historyModal) historyModal.classList.remove("active");
+        if (artifactsModal) artifactsModal.classList.remove("active");
         if (settingsModal) settingsModal.classList.remove("active");
         if (isGenerating && currentAbortController) currentAbortController.abort();
     }
@@ -2456,6 +2629,7 @@ if (helpBtn) helpBtn.addEventListener("click", () => { if (shortcutsModal) short
 if (closeShortcuts) closeShortcuts.addEventListener("click", () => { if (shortcutsModal) shortcutsModal.classList.remove("active"); });
 if (shortcutsModal) shortcutsModal.addEventListener("click", (e) => { if (e.target === shortcutsModal) shortcutsModal.classList.remove("active"); });
 if (historyModal) historyModal.addEventListener("click", (e) => { if (e.target === historyModal) historyModal.classList.remove("active"); });
+if (artifactsModal) artifactsModal.addEventListener("click", (e) => { if (e.target === artifactsModal) artifactsModal.classList.remove("active"); });
 
 /* ============ UI/UX Enhancements ============ */
 browser.storage.onChanged.addListener((changes, area) => {

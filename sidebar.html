@@ -22,6 +22,9 @@
       </div>
 
       <div class="header-actions">
+        <button id="artifacts-btn" class="icon-btn" title="Code & Artifacts Drawer (Alt+Shift+C)" aria-label="Artifacts drawer">
+          <svg class="icon" viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        </button>
         <button id="new-chat-btn-header" class="icon-btn" title="New chat (Ctrl+N)" aria-label="New chat">
           <svg class="icon" viewBox="0 0 24 24"><path d="M12 20h9"/><path d="M16.5 3.5a2.12 2.12 0 0 1 3 3L7 19l-4 1 1-4Z"/></svg>
         </button>
@@ -418,6 +421,23 @@
         <button id="new-conversation-btn-history" class="action-btn primary">New</button>
       </div>
       <div id="history-list" class="history-list"></div>
+    </div>
+  </div>
+
+  <!-- ═══════════════ ARTIFACTS MODAL ═══════════════ -->
+  <div id="artifacts-modal" class="modal modal-left">
+    <div class="modal-content artifacts-content">
+      <div class="modal-header">
+        <h2>Code &amp; Artifacts</h2>
+        <button id="close-artifacts" class="modal-close-btn" aria-label="Close">
+          <svg class="icon" viewBox="0 0 24 24"><line x1="18" y1="6" x2="6" y2="18"/><line x1="6" y1="6" x2="18" y2="18"/></svg>
+        </button>
+      </div>
+      <div class="artifacts-toolbar">
+        <span id="artifacts-count" class="meta-chip">0 items</span>
+        <button id="refresh-artifacts-btn" class="action-btn" style="padding: 3px 8px; font-size: 11px;">Refresh</button>
+      </div>
+      <div id="artifacts-list" class="artifacts-list"></div>
     </div>
   </div>
 

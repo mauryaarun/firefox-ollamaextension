@@ -2,7 +2,7 @@
   "manifest_version": 3,
   "name": "ChatAI🧠 Local Multimodal AI Assistant Sidebar",
   "description": "Private, local-first AI assistant for Firefox: chat with pages, PDFs and images, voice, RAG knowledge base, Ollama / OpenAI-compatible servers.",
-  "version": "4.0.0",
+  "version": "4.1.0",
   "permissions": [
     "storage",
     "unlimitedStorage",
